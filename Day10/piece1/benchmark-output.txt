@@ -1,0 +1,17 @@
+[+] Preparing SQL Server schema and seed data...
+    10,000 rows already present.
+
+--- 1. Identity map: two separate queries, one DbContext ---
+    Tracked    -> ReferenceEquals: True , change tracker holds 1 entry
+    Untracked  -> ReferenceEquals: False, change tracker holds 0 entries
+    Resolution -> ReferenceEquals: False, change tracker holds 0 entries
+
+--- 2. Identity resolution scope: one row repeated 10,000x inside one query ---
+    AsNoTracking()                       -> 10,000 rows, 10,000 distinct anchor objects
+    AsNoTrackingWithIdentityResolution() -> 10,000 rows,      1 distinct anchor object
+
+--- 3. Benchmark: 10,000-row read, median of 9 iterations ---
+    Mode                                    Time (ms)   Alloc (MB)
+    Tracked (default)                            52.9         8.60
+    AsNoTracking()                               14.8         2.99
+    AsNoTrackingWithIdentityResolution()         12.0         8.30

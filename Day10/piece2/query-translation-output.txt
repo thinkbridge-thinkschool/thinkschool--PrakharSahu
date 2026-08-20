@@ -1,0 +1,50 @@
+[+] Preparing SQL Server schema and seed data...
+    10,000 products already present.
+
+--- 1. Logging the generated SQL ---
+    Default logging          -> Parameters=[@p='?' (DbType = Int32), @minPrice='?' (Precision = 18) (Scale = 2) (DbType = Decimal)]
+    EnableSensitiveDataLogging -> Parameters=[@p='1', @minPrice='500' (Precision = 18) (Scale = 2)]
+    (values are visible in the second one, which is why it is dev-only)
+
+--- 2. Whole entity versus projection ---
+
+    Whole entity (11 columns):
+      SELECT [d].[Id], [d].[CategoryId], [d].[CreatedUtc], [d].[Description], [d].[InternalNotes], [d].[IsDiscontinued], [d].[Name], [d].[Price], [d].[Sku], [d].[StockQuantity], [d].[Weight] FROM [Day10P2_Products] AS [d] WHERE [d].[CategoryId] = 1
+
+    Projected DTO (4 columns):
+      SELECT [d].[Id], [d].[Name], [d].[Price], [d].[StockQuantity] FROM [Day10P2_Products] AS [d] WHERE [d].[CategoryId] = 1
+
+    Description and InternalNotes are absent from the second statement,
+    so the nvarchar(max) payload never crosses the wire.
+
+--- 3. Projecting across a navigation ---
+    Include(p => p.Category)   -> 13 columns selected
+    Select(... p.Category.Name) -> 3 columns selected
+      SELECT [d].[Name], [d].[Price], [d0].[Name] AS [CategoryName] FROM [Day10P2_Products] AS [d] INNER JOIN [Day10P2_Categories] AS [d0] ON [d].[CategoryId] = [d0].[Id] WHERE [d].[CategoryId] = 1
+
+--- 4. Cost of the two shapes, median of 9 iterations ---
+    Query                               Time (ms)   Alloc (MB)     Rows
+    Whole entity (11 columns)                46.0         2.35    1,000
+    Projected DTO (4 columns)                 9.4         0.37    1,000
+
+--- 5. Accidental client-side evaluation ---
+    Table holds 10,000 rows.
+    IEnumerable + Where -> kept    960, fetched 10,000, SQL has WHERE: False
+    IQueryable  + Where -> kept    960, fetched    960, SQL has WHERE: True
+    Same answer both times. The first pulled every row (all 11 columns,
+    nvarchar(max) included) and discarded most of them in memory, and
+    nothing in the API or the compiler warned about it.
+      SELECT [d].[Id], [d].[CategoryId], [d].[CreatedUtc], [d].[Description], [d].[InternalNotes], [d].[IsDiscontinued], [d].[Name], [d].[Price], [d].[Sku], ...
+
+    Untranslatable predicate threw, as it should:
+      The LINQ expression 'DbSet<Product>() .Where(p => Program.Normalize(p.Sku) == "SKU-000001")' could not be translated. Additional information: Translation of method 'QueryTranslation.Program.Normalize' failed. If this method can be mapped to your custom functio ...
+    Rewritten with ToUpper() -> translated fine, 1 row(s), SQL contains UPPER: True
+
+--- 6. Does the projection reduce IO as well as payload? ---
+    Projection, no covering index -> 3,348 logical reads
+    Projection, covering index    -> 10 logical reads
+    Whole entity, covering index  -> 3,348 logical reads
+    The projection can use the narrow index; the whole-entity query still
+    needs the wide columns, so it goes back to the clustered index.
+
+Done.

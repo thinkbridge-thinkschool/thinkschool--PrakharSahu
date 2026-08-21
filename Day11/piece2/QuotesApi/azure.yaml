@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: quotes-api
+metadata:
+    template: azd-init@1.31.1
+services:
+    quotes-api:
+        project: .
+        host: containerapp
+        language: dotnet
+resources:
+    quotes-api:
+        type: host.containerapp
+        port: 8080
+        # Values wrapped in ${...} are substituted from the azd environment
+        # (.azure/<env>/.env), which is gitignored. Set them with:
+        #   azd env set <NAME> <value>
+        # Entries marked secret become Container Apps secrets rather than
+        # plaintext environment variables.
+        env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: Jwt__Key
+              secret: ${JWT_SIGNING_KEY}
+            - name: Seed__AdminEmail
+              value: ${SEED_ADMIN_EMAIL}
+            - name: Seed__AdminPassword
+              secret: ${SEED_ADMIN_PASSWORD}
+        # Optional -- add back once the backing resources exist. Both are safe
+        # to omit: the app skips the Azure Monitor exporter when the connection
+        # string is absent, and skips the Entra auth scheme when the tenant and
+        # audience are absent.
+        #
+        #     - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+        #       value: ${APPLICATIONINSIGHTS_CONNECTION_STRING}
+        #       secret: true
+        #     - name: EntraId__TenantId
+        #       value: ${ENTRA_TENANT_ID}
+        #     - name: EntraId__Audience
+        #       value: ${ENTRA_AUDIENCE}

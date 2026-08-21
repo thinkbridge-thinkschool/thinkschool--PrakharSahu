@@ -26,6 +26,8 @@ schema and seeds 10,000 products across 10 categories on first run.
 renders, and they are what makes the projection worth measuring instead of just describing.
 Full console output is in `query-translation-output.txt`.
 
+![Query Translation Output](./QueryTranslation/ScreenShots/query-translation.png)
+
 #### 1. Logging the generated SQL
 
 `LogTo` is the whole story for a console app. No DI, no logging provider, just a callback,

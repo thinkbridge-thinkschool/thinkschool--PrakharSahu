@@ -1,0 +1,22 @@
+
+name: quotes-api
+metadata:
+    template: azd-init@1.31.1
+services:
+    quotes-api:
+        project: .
+        host: containerapp
+        language: dotnet
+resources:
+    quotes-api:
+        type: host.containerapp
+        port: 8080
+        env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: Jwt__Key
+              secret: ${JWT_SIGNING_KEY}
+            - name: Seed__AdminEmail
+              value: ${SEED_ADMIN_EMAIL}
+            - name: Seed__AdminPassword
+              secret: ${SEED_ADMIN_PASSWORD}

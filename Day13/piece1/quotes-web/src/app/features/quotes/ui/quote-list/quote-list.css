@@ -1,0 +1,43 @@
+.quote-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quote {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.125rem;
+  border-radius: 0.5rem;
+  background: var(--surface);
+  border-inline-start: 3px solid var(--accent);
+}
+
+.quote__text {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.quote__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.quote__author {
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
+.quote-list__empty {
+  padding: 2rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--muted);
+  text-align: center;
+}

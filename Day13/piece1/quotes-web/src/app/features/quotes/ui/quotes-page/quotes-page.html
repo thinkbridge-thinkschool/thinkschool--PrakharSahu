@@ -1,0 +1,47 @@
+<header class="page__header">
+  <h1 class="page__title">Quotes</h1>
+  <p class="page__subtitle">
+    Live from <code>GET /api/quotes</code> on the Week-1 QuotesApi.
+  </p>
+</header>
+
+<app-quote-filters
+  [(search)]="store.search"
+  [(sortOrder)]="store.sortOrder"
+  [visibleCount]="store.visibleCount()"
+  [totalCount]="store.totalCount()"
+  [isRefreshing]="store.isRefreshing()"
+  (refreshRequested)="store.refresh()"
+/>
+
+<!-- Stale-data notice: only meaningful while a refresh runs over quotes already on screen. -->
+@if (store.isRefreshing()) {
+  <p class="page__notice" role="status" data-testid="refreshing-notice">
+    Refreshing — the list below is the previous response.
+  </p>
+}
+
+@switch (store.status()) {
+  @case ('loading') {
+    <p class="page__notice" role="status" data-testid="loading-state">Loading quotes…</p>
+  }
+
+  @case ('failed') {
+    <div class="page__error" role="alert" data-testid="error-state">
+      <p class="page__error-text">{{ store.failureMessage() }}</p>
+      <button type="button" data-testid="retry-button" (click)="store.refresh()">Try again</button>
+    </div>
+  }
+
+  @default {
+    @if (store.authorTallies().length > 1) {
+      <ul class="tallies" data-testid="author-tallies">
+        @for (tally of store.authorTallies(); track tally.author) {
+          <li class="tallies__item">{{ tally.author }} · {{ tally.count }}</li>
+        }
+      </ul>
+    }
+
+    <app-quote-list [quotes]="store.visibleQuotes()" [emptyMessage]="emptyMessage()" />
+  }
+}

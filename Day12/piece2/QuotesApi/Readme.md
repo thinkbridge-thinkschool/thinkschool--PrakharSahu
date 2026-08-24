@@ -21,6 +21,7 @@ public async Task<List<QuoteReadModel>> Handle(GetQuotesQuery request, Cancellat
         })
         .ToListAsync(ct);
 }
+```
 
 ### Dapper Implementation
 ```csharp
@@ -31,6 +32,7 @@ public async Task<List<QuoteReadModel>> Handle(GetQuotesDapperQuery request, Can
     var result = await connection.QueryAsync<QuoteReadModel>(sql);
     return result.AsList();
 }
+```
 
 ## 2. Timing Comparison (1000 iterations)
  - **EF Core** (.AsNoTracking + Select): ~14.5 ms per request

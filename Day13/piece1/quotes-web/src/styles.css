@@ -1,0 +1,43 @@
+:root {
+  --page: #ffffff;
+  --surface: #f6f4fb;
+  --border: #ddd6ec;
+  --text: #1d1a26;
+  --muted: #625c72;
+  --accent: #7c5cd6;
+  --accent-strong: #5a3fb0;
+  --danger: #c0392b;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #16141c;
+    --surface: #201d2a;
+    --border: #343043;
+    --text: #ece9f4;
+    --muted: #a49dbb;
+    --accent: #a58bec;
+    --accent-strong: #c3b1ff;
+    --danger: #ff8a7a;
+  }
+}
+
+html {
+  background: var(--page);
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family:
+    'Avenir Next LT Pro',
+    'Avenir Next',
+    Mulish,
+    'Segoe UI',
+    system-ui,
+    sans-serif;
+  line-height: 1.5;
+}

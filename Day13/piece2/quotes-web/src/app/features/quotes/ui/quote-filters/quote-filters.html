@@ -1,0 +1,47 @@
+<section class="filters" aria-label="Quote filters">
+  <label class="filters__field">
+    <span class="filters__label">Search author or text</span>
+    <input
+      class="filters__input"
+      type="search"
+      autocomplete="off"
+      placeholder="e.g. migrations"
+      data-testid="search-input"
+      [value]="search()"
+      (input)="onSearchInput($event)"
+    />
+  </label>
+
+  <label class="filters__field filters__field--compact">
+    <span class="filters__label">Sort by created</span>
+    <select
+      class="filters__input"
+      data-testid="sort-select"
+      [value]="sortOrder()"
+      (change)="onSortOrderChange($event)"
+    >
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+    </select>
+  </label>
+
+  <p class="filters__summary" data-testid="filter-summary">
+    Showing {{ visibleCount() }} of {{ totalCount() }}
+
+    @if (search().trim().length > 0) {
+      <button class="filters__clear" type="button" data-testid="clear-search" (click)="search.set('')">
+        Clear “{{ search().trim() }}”
+      </button>
+    }
+  </p>
+
+  <button
+    class="filters__refresh"
+    type="button"
+    data-testid="refresh-button"
+    [disabled]="isRefreshing()"
+    (click)="refreshRequested.emit()"
+  >
+    {{ isRefreshing() ? 'Refreshing…' : 'Refresh' }}
+  </button>
+</section>

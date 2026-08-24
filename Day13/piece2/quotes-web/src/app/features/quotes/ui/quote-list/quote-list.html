@@ -1,0 +1,29 @@
+<ul class="quote-list" data-testid="quote-list">
+  <!--
+    `track quote.id` is load-bearing, not decoration: the seeded API contains quotes that
+    share the same text and author (ids 1 and 6), so tracking by content would collapse
+    them into one row and re-create DOM on every reorder.
+  -->
+  @for (quote of quotes(); track quote.id) {
+    <li class="quote" data-testid="quote-row">
+      <button
+        class="quote__button"
+        type="button"
+        data-testid="quote-select"
+        [class.quote__button--selected]="quote.id === selectedQuoteId()"
+        [attr.aria-current]="quote.id === selectedQuoteId() ? 'true' : null"
+        (click)="quoteSelected.emit(quote.id)"
+      >
+        <blockquote class="quote__text">{{ quote.text }}</blockquote>
+        <span class="quote__meta">
+          <span class="quote__author">{{ quote.author }}</span>
+          <time class="quote__date" [attr.datetime]="quote.createdAt">
+            {{ quote.createdAt | date: 'mediumDate' }}
+          </time>
+        </span>
+      </button>
+    </li>
+  } @empty {
+    <li class="quote-list__empty" data-testid="quote-list-empty">{{ emptyMessage() }}</li>
+  }
+</ul>

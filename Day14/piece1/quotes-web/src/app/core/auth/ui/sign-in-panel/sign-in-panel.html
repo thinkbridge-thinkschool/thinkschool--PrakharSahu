@@ -1,0 +1,69 @@
+<section
+  class="rounded-lg bg-surface p-4 text-sm"
+  aria-labelledby="sign-in-heading"
+  data-testid="sign-in-panel"
+>
+  <h2 id="sign-in-heading" class="m-0 text-base font-bold">Session</h2>
+
+  @if (session.isSignedIn()) {
+    <p class="mt-2 mb-0 flex items-center gap-3 text-muted">
+      <span>Signed in — writes will carry a bearer token.</span>
+      <button
+        type="button"
+        class="cursor-pointer rounded-md border border-line bg-page px-2.5 py-1 text-xs"
+        (click)="session.signOut()"
+      >
+        Sign out
+      </button>
+    </p>
+  } @else {
+    <p class="mt-1 mb-3 text-muted">
+      <code class="font-mono">POST /api/auth/login</code> — needed before a quote can be created.
+    </p>
+
+    <form novalidate (submit)="onSubmit($event)" class="flex flex-wrap items-end gap-3">
+      <div class="grid gap-1">
+        <label for="sign-in-email" class="text-xs font-semibold">Email</label>
+        <input
+          id="sign-in-email"
+          type="email"
+          name="email"
+          autocomplete="username"
+          [value]="email()"
+          (input)="onEmailInput($event)"
+          class="rounded-md border border-line bg-page px-2.5 py-1.5"
+        />
+      </div>
+
+      <div class="grid gap-1">
+        <label for="sign-in-password" class="text-xs font-semibold">Password</label>
+        <input
+          id="sign-in-password"
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          [value]="password()"
+          (input)="onPasswordInput($event)"
+          class="rounded-md border border-line bg-page px-2.5 py-1.5"
+        />
+      </div>
+
+      <button
+        type="submit"
+        [attr.aria-disabled]="session.isSigningIn() ? 'true' : null"
+        class="cursor-pointer rounded-md border border-accent bg-page px-3 py-1.5 text-xs font-semibold text-accent-strong aria-disabled:opacity-60"
+      >
+        {{ session.isSigningIn() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+  }
+
+  <p
+    class="mt-2 mb-0"
+    [class.text-danger]="isFailure()"
+    [attr.role]="isFailure() ? 'alert' : 'status'"
+    data-testid="sign-in-status"
+  >
+    {{ statusMessage() }}
+  </p>
+</section>

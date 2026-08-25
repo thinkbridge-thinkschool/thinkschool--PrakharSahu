@@ -1,0 +1,73 @@
+<header class="page__header">
+  <h1 class="page__title">Quotes</h1>
+  <p class="page__subtitle">
+    List from <code>GET /api/quotes</code>, detail from <code>GET /api/quotes/:id</code> on the
+    Week-1 QuotesApi.
+  </p>
+</header>
+
+<app-sign-in-panel />
+
+<!-- A created quote is not pushed into the list by hand; the list refetches so what is on
+     screen is what GET /api/quotes actually returns. -->
+<app-quote-form (quoteCreated)="list.refresh()" />
+
+<app-quote-filters
+  [(search)]="list.search"
+  [(sortOrder)]="list.sortOrder"
+  [visibleCount]="list.visibleCount()"
+  [totalCount]="list.totalCount()"
+  [isRefreshing]="list.isRefreshing()"
+  (refreshRequested)="list.refresh()"
+/>
+
+<!-- Stale-data notice: only meaningful while a refresh runs over quotes already on screen. -->
+@if (list.isRefreshing()) {
+  <p class="page__notice" role="status" data-testid="refreshing-notice">
+    Refreshing — the list below is the previous response.
+  </p>
+}
+
+<div class="page__split">
+  <div class="page__list">
+    @switch (list.status()) {
+      @case ('loading') {
+        <p class="page__notice" role="status" data-testid="loading-state">Loading quotes…</p>
+      }
+
+      @case ('failed') {
+        <div class="page__error" role="alert" data-testid="error-state">
+          <p class="page__error-text">{{ list.failureMessage() }}</p>
+          <button type="button" data-testid="retry-button" (click)="list.refresh()">Try again</button>
+        </div>
+      }
+
+      @default {
+        @if (list.authorTallies().length > 1) {
+          <ul class="tallies" data-testid="author-tallies">
+            @for (tally of list.authorTallies(); track tally.author) {
+              <li class="tallies__item">{{ tally.author }} · {{ tally.count }}</li>
+            }
+          </ul>
+        }
+
+        <app-quote-list
+          [quotes]="list.visibleQuotes()"
+          [emptyMessage]="emptyMessage()"
+          [selectedQuoteId]="detail.selectedQuoteId()"
+          (quoteSelected)="detail.select($event)"
+        />
+      }
+    }
+  </div>
+
+  <app-quote-detail
+    class="page__detail"
+    [status]="detail.status()"
+    [quote]="detail.quote()"
+    [failureMessage]="detail.failureMessage()"
+    [quoteId]="detail.selectedQuoteId()"
+    (retryRequested)="detail.reload()"
+    (closeRequested)="detail.close()"
+  />
+</div>

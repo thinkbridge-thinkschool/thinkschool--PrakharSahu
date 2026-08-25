@@ -1,0 +1,5 @@
+# Local dev database created for manual testing of the create-quote form.
+# Contains a throwaway seeded account and is not part of the deliverable.
+quotes-dev.db
+quotes-dev.db-shm
+quotes-dev.db-wal

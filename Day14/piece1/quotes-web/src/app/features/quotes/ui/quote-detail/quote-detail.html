@@ -1,0 +1,66 @@
+<section class="detail" aria-label="Quote detail" data-testid="quote-detail">
+  @switch (status()) {
+    @case ('idle') {
+      <p class="detail__hint" data-testid="detail-idle">Select a quote to see its full record.</p>
+    }
+
+    @case ('loading') {
+      <p class="detail__hint" role="status" data-testid="detail-loading">
+        Loading quote #{{ quoteId() }}…
+      </p>
+    }
+
+    @case ('not-found') {
+      <div class="detail__missing" role="status" data-testid="detail-not-found">
+        <p>Quote #{{ quoteId() }} no longer exists. It was deleted, or never existed.</p>
+        <button type="button" data-testid="detail-close" (click)="closeRequested.emit()">
+          Close
+        </button>
+      </div>
+    }
+
+    @case ('failed') {
+      <div class="detail__error" role="alert" data-testid="detail-error">
+        <p>Quote #{{ quoteId() }} could not be loaded. {{ failureMessage() }}</p>
+        <!-- Close matters here: without it a failing request is a pane the user cannot dismiss. -->
+        <span class="detail__actions">
+          <button type="button" data-testid="detail-retry" (click)="retryRequested.emit()">
+            Try again
+          </button>
+          <button type="button" data-testid="detail-close" (click)="closeRequested.emit()">
+            Close
+          </button>
+        </span>
+      </div>
+    }
+
+    @default {
+      @if (quote(); as loaded) {
+        <article class="detail__card" data-testid="detail-card">
+          <header class="detail__header">
+            <h2 class="detail__id">Quote #{{ loaded.id }}</h2>
+            <button type="button" data-testid="detail-close" (click)="closeRequested.emit()">
+              Close
+            </button>
+          </header>
+
+          <blockquote class="detail__text">{{ loaded.text }}</blockquote>
+
+          <!-- Every field the API actually returns, including the two the list hides. -->
+          <dl class="detail__fields">
+            <dt>author</dt>
+            <dd data-testid="detail-author">{{ loaded.author }}</dd>
+            <dt>createdAt</dt>
+            <dd>
+              <time [attr.datetime]="loaded.createdAt">{{ loaded.createdAt | date: 'medium' }}</time>
+            </dd>
+            <dt>userId</dt>
+            <dd>{{ loaded.userId }}</dd>
+            <dt>isDeleted</dt>
+            <dd>{{ loaded.isDeleted }}</dd>
+          </dl>
+        </article>
+      }
+    }
+  }
+</section>

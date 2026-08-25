@@ -1,0 +1,206 @@
+<section
+  class="rounded-lg bg-surface p-5 border-l-[3px] border-accent"
+  aria-labelledby="create-quote-heading"
+>
+  <h2 id="create-quote-heading" class="m-0 text-lg font-bold text-accent-strong">Add a quote</h2>
+  <p class="mt-1 mb-4 text-sm text-muted">
+    Sends <code class="font-mono">POST /api/quotes</code> with
+    <code class="font-mono">{{ '{' }} author, text {{ '}' }}</code
+    >.
+  </p>
+
+  @if (!store.isSignedIn()) {
+    <p class="mb-4 rounded-md border border-line px-3 py-2 text-sm text-muted">
+      You are not signed in, so the API will answer 401. Sign in below to submit for real.
+    </p>
+  }
+
+  <form novalidate (submit)="onSubmit($event)" class="grid gap-5">
+    @if (store.hasVisibleErrors()) {
+      <div
+        #errorSummary
+        tabindex="-1"
+        role="alert"
+        aria-labelledby="create-quote-error-heading"
+        class="rounded-md border-l-[3px] border-danger bg-page px-4 py-3"
+      >
+        <h3 id="create-quote-error-heading" class="m-0 text-sm font-bold text-danger">
+          There {{ store.errorSummary().length === 1 ? 'is a problem' : 'are problems' }} with this
+          quote
+        </h3>
+        <ul class="mt-2 mb-0 grid list-none gap-1 p-0">
+          @for (item of store.errorSummary(); track item.fieldId + item.message) {
+            <li>
+              <button
+                type="button"
+                class="cursor-pointer border-0 bg-transparent p-0 text-left text-sm text-danger underline"
+                (click)="onSummaryItemClick(item.fieldId)"
+              >
+                {{ item.label }}: {{ item.message }}
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Author ------------------------------------------------------------------------ -->
+    <div class="grid gap-1.5">
+      <label [attr.for]="authorId" class="text-sm font-semibold">
+        Author
+        <span class="text-danger" aria-hidden="true">*</span>
+        <span class="sr-only-live">(required)</span>
+      </label>
+
+      <p [id]="authorId + '-hint'" class="m-0 text-xs text-muted">
+        Who said it. Up to {{ store.authorMaxLength }} characters.
+      </p>
+
+      <input
+        [id]="authorId"
+        type="text"
+        autocomplete="off"
+        [formField]="store.form.author"
+        [attr.aria-invalid]="showAuthorErrors() ? 'true' : null"
+        [attr.aria-describedby]="authorDescribedBy()"
+        class="rounded-md border border-line bg-page px-2.5 py-2 text-ink"
+        [class.border-danger]="showAuthorErrors()"
+      />
+
+      @if (showAuthorErrors()) {
+        <ul [id]="authorId + '-error'" class="m-0 grid list-none gap-1 p-0">
+          @for (message of authorMessages(); track message) {
+            <li class="text-sm text-danger">{{ message }}</li>
+          }
+        </ul>
+      }
+
+      <p [id]="authorId + '-count'" class="m-0 text-xs text-muted">
+        {{ store.authorRemaining() }} of {{ store.authorMaxLength }} characters remaining
+      </p>
+      <span role="status" class="sr-only-live">{{ authorCountAnnouncement() }}</span>
+    </div>
+
+    <!-- Quote text -------------------------------------------------------------------- -->
+    <div class="grid gap-1.5">
+      <label [attr.for]="textId" class="text-sm font-semibold">
+        Quote text
+        <span class="text-danger" aria-hidden="true">*</span>
+        <span class="sr-only-live">(required)</span>
+      </label>
+
+      <p [id]="textId + '-hint'" class="m-0 text-xs text-muted">
+        The quote itself. Up to {{ store.textMaxLength }} characters.
+      </p>
+
+      <textarea
+        [id]="textId"
+        rows="4"
+        [formField]="store.form.text"
+        [attr.aria-invalid]="showTextErrors() ? 'true' : null"
+        [attr.aria-describedby]="textDescribedBy()"
+        class="resize-y rounded-md border border-line bg-page px-2.5 py-2 text-ink"
+        [class.border-danger]="showTextErrors()"
+      ></textarea>
+
+      @if (showTextErrors()) {
+        <ul [id]="textId + '-error'" class="m-0 grid list-none gap-1 p-0">
+          @for (message of textMessages(); track message) {
+            <li class="text-sm text-danger">{{ message }}</li>
+          }
+        </ul>
+      }
+
+      <p [id]="textId + '-count'" class="m-0 text-xs text-muted">
+        {{ store.textRemaining() }} of {{ store.textMaxLength }} characters remaining
+      </p>
+      <span role="status" class="sr-only-live">{{ textCountAnnouncement() }}</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button
+        type="submit"
+        [attr.aria-disabled]="store.isSubmitting() ? 'true' : null"
+        class="cursor-pointer rounded-md border border-accent bg-page px-4 py-2 text-sm font-semibold text-accent-strong aria-disabled:cursor-progress aria-disabled:opacity-60"
+      >
+        {{ store.isSubmitting() ? 'Saving…' : 'Add quote' }}
+      </button>
+      <span aria-hidden="true" class="text-xs text-muted">
+        <span class="text-danger">*</span> required
+      </span>
+    </div>
+
+    <!-- Submission outcome. role=alert for failures, role=status for success. --------- -->
+    @switch (store.submissionState().kind) {
+      @case ('created') {
+        <div
+          #outcomeAlert
+          tabindex="-1"
+          role="status"
+          class="rounded-md border-l-[3px] border-success bg-page px-4 py-3 text-sm"
+          data-testid="create-success"
+        >
+          Quote created. The list has been refreshed.
+          <button
+            type="button"
+            class="ml-2 cursor-pointer rounded border border-line bg-page px-2 py-1 text-xs"
+            (click)="store.dismissOutcome()"
+          >
+            Dismiss
+          </button>
+        </div>
+      }
+
+      @case ('unauthenticated') {
+        <div
+          #outcomeAlert
+          tabindex="-1"
+          role="alert"
+          class="rounded-md border-l-[3px] border-danger bg-page px-4 py-3 text-sm"
+          data-testid="create-unauthenticated"
+        >
+          The API answered 401. Sign in and submit again.
+        </div>
+      }
+
+      @case ('forbidden') {
+        <div
+          #outcomeAlert
+          tabindex="-1"
+          role="alert"
+          class="rounded-md border-l-[3px] border-danger bg-page px-4 py-3 text-sm"
+          data-testid="create-forbidden"
+        >
+          The API answered 403. Your token is valid but carries no
+          <code class="font-mono">quotes.write</code> scope, which the
+          <code class="font-mono">can-edit-quotes</code> policy requires.
+        </div>
+      }
+
+      @case ('rejected') {
+        <div
+          #outcomeAlert
+          tabindex="-1"
+          role="alert"
+          class="rounded-md border-l-[3px] border-danger bg-page px-4 py-3 text-sm"
+          data-testid="create-rejected"
+        >
+          The API rejected this quote:
+          <span data-testid="create-rejected-message">{{ outcomeMessage() }}</span>
+        </div>
+      }
+
+      @case ('failed') {
+        <div
+          #outcomeAlert
+          tabindex="-1"
+          role="alert"
+          class="rounded-md border-l-[3px] border-danger bg-page px-4 py-3 text-sm"
+          data-testid="create-failed"
+        >
+          {{ outcomeMessage() }}
+        </div>
+      }
+    }
+  </form>
+</section>

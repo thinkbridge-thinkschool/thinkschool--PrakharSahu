@@ -1,0 +1,70 @@
+<main class="shell">
+  <header>
+    <h1>HttpClient + interceptors</h1>
+    <p class="subtitle">
+      Live against the Week-1 QuotesApi. Auth header, retry-with-backoff on idempotent GETs, and
+      every failure mapped to a typed <code>ApiError</code> before it leaves the HTTP layer.
+    </p>
+  </header>
+
+  <section class="controls" aria-label="Exercise the HTTP layer">
+    <button type="button" (click)="store.load()" [attr.aria-disabled]="store.isLoading() || null">
+      GET /api/quotes
+    </button>
+    <button type="button" (click)="store.loadMissing(9999)">GET /api/quotes/9999 (404)</button>
+    <button type="button" (click)="store.reset()">Reset</button>
+    <span class="muted" data-testid="last-action">{{ store.lastAction() }}</span>
+  </section>
+
+  @switch (store.status()) {
+    @case ('idle') {
+      <p class="notice" data-testid="idle">Nothing requested yet.</p>
+    }
+
+    @case ('loading') {
+      <p class="notice" role="status" data-testid="loading">Loading…</p>
+    }
+
+    @case ('empty') {
+      <p class="notice" data-testid="empty">
+        The API returned no quotes. Create one with <code>POST /api/quotes</code>.
+      </p>
+    }
+
+    @case ('failed') {
+      <div class="error" role="alert" data-testid="error">
+        <p class="error-message" data-testid="error-message">{{ store.error()?.friendlyMessage }}</p>
+        <!-- kind and status are shown here only because this page exists to demonstrate the
+             mapping. A real screen would render the message and nothing else. -->
+        <p class="muted">
+          kind=<span data-testid="error-kind">{{ store.error()?.kind }}</span> · status=<span
+            data-testid="error-status"
+            >{{ store.error()?.status }}</span
+          >
+          · retryable={{ store.error()?.retryable }}
+        </p>
+        @if (store.error()?.fieldErrors?.size) {
+          <ul>
+            @for (entry of store.error()!.fieldErrors | keyvalue; track entry.key) {
+              <li>{{ entry.key }}: {{ entry.value.join(' ') }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    @default {
+      <ul class="quotes" data-testid="quotes">
+        @for (quote of store.quotes(); track quote.id) {
+          <li>
+            <blockquote>{{ quote.text }}</blockquote>
+            <footer>
+              <span class="author">{{ quote.author }}</span>
+              <time [attr.datetime]="quote.createdAt">{{ quote.createdAt | date: 'mediumDate' }}</time>
+            </footer>
+          </li>
+        }
+      </ul>
+    }
+  }
+</main>

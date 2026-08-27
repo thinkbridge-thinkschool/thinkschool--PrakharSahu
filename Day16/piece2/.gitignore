@@ -1,0 +1,5 @@
+# Local dev database used to exercise the delete path against a running API.
+# Contains a throwaway seeded account and is not part of the deliverable.
+quotes-dev.db
+quotes-dev.db-shm
+quotes-dev.db-wal

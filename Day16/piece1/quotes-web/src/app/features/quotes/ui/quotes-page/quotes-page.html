@@ -1,0 +1,99 @@
+<section aria-labelledby="list-heading">
+  <div class="page-head">
+    <div>
+      <h2 id="list-heading">All quotes</h2>
+      <p class="lede">
+        {{ store.quotes().length }} from <code>GET /api/quotes</code>
+        @if (search()) {
+          · <strong>{{ visible().length }}</strong> matching “{{ q() }}”
+        }
+      </p>
+    </div>
+
+    <div class="page-actions">
+      <label class="search">
+        <span class="sr-only">Filter quotes</span>
+        <input
+          type="search"
+          placeholder="Filter by author or text…"
+          [value]="q()"
+          (input)="onSearch($event)"
+          data-testid="filter"
+        />
+      </label>
+      <button type="button" (click)="store.load()" [attr.aria-disabled]="store.isLoading() || null">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  @switch (store.status()) {
+    @case ('loading') {
+      <!-- Skeletons rather than a spinner: the layout does not jump when the data lands. -->
+      <ul class="quotes" aria-hidden="true" data-testid="loading">
+        @for (row of [1, 2, 3]; track row) {
+          <li class="quote-card skeleton">
+            <span class="bar bar-wide"></span>
+            <span class="bar bar-narrow"></span>
+          </li>
+        }
+      </ul>
+      <p class="sr-only" role="status">Loading quotes…</p>
+    }
+
+    @case ('empty') {
+      <p class="notice" data-testid="empty">
+        The API returned no quotes. Create one with <code>POST /api/quotes</code>.
+      </p>
+    }
+
+    @case ('failed') {
+      <div class="error" role="alert" data-testid="error">
+        <p class="error-message">{{ store.error()?.friendlyMessage }}</p>
+        <button type="button" (click)="store.load()">Try again</button>
+      </div>
+    }
+
+    @default {
+      @if (filteredOut()) {
+        <p class="notice" data-testid="no-matches">
+          No quote matches “{{ q() }}”.
+          <a routerLink="/quotes" [queryParams]="{ q: null }" queryParamsHandling="merge"
+            >Clear the filter</a
+          >
+        </p>
+      } @else {
+        <ul class="quotes" data-testid="quotes">
+          @for (quote of visible(); track quote.id) {
+            <li>
+              <!--
+                `view-transition-name` must be unique per element and must match the name the
+                detail page gives its card. Two elements sharing a name in one document makes
+                the browser skip the transition entirely.
+
+                `queryParamsHandling: preserve` carries ?q= onto the detail url, so the back
+                link can bring the user home to the same filtered list.
+              -->
+              <a
+                class="quote-card"
+                [routerLink]="['/quotes', quote.id]"
+                queryParamsHandling="preserve"
+                [style.view-transition-name]="'quote-' + quote.id"
+                [attr.data-testid]="'quote-link-' + quote.id"
+              >
+                <p class="quote-text">{{ quote.text }}</p>
+                <span class="meta">
+                  <span class="author">{{ quote.author }}</span>
+                  <time [attr.datetime]="quote.createdAt">{{
+                    quote.createdAt | date: 'mediumDate'
+                  }}</time>
+                  <span class="id-chip">#{{ quote.id }}</span>
+                </span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</section>

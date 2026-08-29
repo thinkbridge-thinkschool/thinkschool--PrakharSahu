@@ -19,6 +19,11 @@ export MSYS2_ARG_CONV_EXCL='*'
 REPO="${1:-}"
 [ -n "$REPO" ] || { echo "usage: $0 <owner>/<repo>"; exit 1; }
 
+# Git Bash hands native Windows processes MSYS paths they cannot open. No-op elsewhere.
+winpath() {
+  if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else printf '%s' "$1"; fi
+}
+
 SUBSCRIPTION_ID="${SUBSCRIPTION_ID:-132ef106-f8ec-4352-83e4-9bc238274f25}"
 TENANT_ID="${TENANT_ID:-8d46a076-d093-416d-a57b-8692cde13bf8}"
 RESOURCE_GROUP="${RESOURCE_GROUP:-rg-quotes-day17}"
@@ -62,9 +67,29 @@ add_federated_credential() {
   "description": "Day 17 deployment from ${REPO}"
 }
 JSON
-  az ad app federated-credential create --id "$APP_ID" --parameters "@${body}" >/dev/null 2>&1 \
-    && echo "added federated credential: ${subject}" \
-    || echo "federated credential already present: ${subject}"
+  # Two bugs lived in the previous version of these four lines, and together they were
+  # invisible:
+  #
+  #   1. "@${body}" passes an MSYS path like /tmp/tmp.XYZ to az, which is a native Windows
+  #      process and cannot open it. cygpath -w fixes that.
+  #   2. `create ... 2>&1 >/dev/null || echo "already present"` reported SUCCESS-ish text for
+  #      every possible failure. The script printed "federated credential already present"
+  #      while creating nothing at all, and the first sign of trouble was GitHub Actions
+  #      failing days later with AADSTS70021: No matching federated identity record found.
+  #
+  # So: real paths, errors shown, and a non-zero exit unless the credential actually exists
+  # afterwards.
+  if az ad app federated-credential create --id "$APP_ID" \
+       --parameters "@$(winpath "$body")" >/dev/null 2>/tmp/fc-error.txt; then
+    echo "added federated credential: ${subject}"
+  elif grep -qi "already exists\|same subject" /tmp/fc-error.txt; then
+    echo "federated credential already present: ${subject}"
+  else
+    echo "FAILED to add federated credential: ${subject}" >&2
+    sed 's/^/    /' /tmp/fc-error.txt >&2
+    rm -f "$body"
+    exit 1
+  fi
   rm -f "$body"
 }
 

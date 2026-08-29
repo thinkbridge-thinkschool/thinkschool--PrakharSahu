@@ -37,16 +37,34 @@ try {
   process.exit(1);
 }
 
-/** Replaces a value and fails loudly if the pattern was not there to replace. */
+/**
+ * Replaces a value and fails loudly if the pattern was not there to replace.
+ *
+ * The failure condition is "the pattern did not match", NOT "the file did not change". Those
+ * look identical from the outside and are opposites in meaning: the first means the file has
+ * changed shape and the bundle would ship pointed at the wrong host, the second means the
+ * value is already correct and there is nothing to do.
+ *
+ * Conflating them made this script fail exactly when it had nothing to fix. The committed
+ * environment.production.ts already carries the current BFF hostname — because the last
+ * deploy stamped it there and it was committed — so re-running produced a byte-identical
+ * result and threw "found nothing to replace" on a perfectly healthy repository. CI hit it on
+ * the first green-path run.
+ */
 function rewrite(path, pattern, replacement, what) {
   const file = join(repoRoot, path);
   const before = readFileSync(file, 'utf8');
+
+  // Neither pattern is global, so `.test` does not carry lastIndex state between calls.
+  if (!pattern.test(before)) {
+    throw new Error(`${path}: found nothing to replace for ${what}. Has the file changed shape?`);
+  }
+
   const after = before.replace(pattern, replacement);
 
   if (after === before) {
-    // Silence here would mean shipping a bundle pointed at the wrong host, which fails only
-    // in the browser and only for real users.
-    throw new Error(`${path}: found nothing to replace for ${what}. Has the file changed shape?`);
+    console.log(`  ${path}  ->  ${what} already correct, left alone`);
+    return;
   }
 
   writeFileSync(file, after);

@@ -1,0 +1,178 @@
+name: Day17 — Deploy to Azure Static Web Apps
+
+# Only fires for Day 17, so the other days' work never triggers a deployment.
+on:
+  push:
+    # "feature/day17" exactly, plus any "feature/day17-something" suffix. The bare name has
+    # to be listed on its own: a "feature/day17-**" pattern requires the hyphen and silently
+    # never matches the branch this was actually developed on.
+    branches: ["main", "feature/day17", "feature/day17-**"]
+    paths: ["Day17/**", ".github/workflows/day17-deploy.yml"]
+  workflow_dispatch:
+
+# Least privilege, and the reason this pipeline needs no stored credential:
+#   id-token: write  lets the runner request a short-lived OIDC token from GitHub, which
+#                    Entra trades for an Azure access token under a federated credential.
+# There is no AZURE_CREDENTIALS blob and no client secret. The three values below are
+# repository *variables*, not secrets — a client id, a tenant id and a subscription id are
+# public identifiers, and treating them as secrets only obscures which values actually matter.
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: rg-quotes-day17
+  SWA_NAME: swa-quotes-day17
+  BFF_APP_NAME: quotes-bff
+  API_APP_NAME: quotes-api
+  # The nginx static host used when Static Web Apps cannot be created in this subscription.
+  WEB_APP_NAME: quotes-web
+
+concurrency:
+  group: day17-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: day17
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: Day17/frontend/package-lock.json
+
+      - name: Sign in to Azure with OIDC (no client secret)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # Built on the runner and pushed, NOT with `az acr build`. ACR Tasks is not permitted
+      # on this subscription — it fails with TasksOperationsNotAllowed — so the cloud-build
+      # shortcuts (`az acr build`, `az containerapp up --source`) are unavailable. The runner
+      # has a Docker daemon, so this costs nothing extra here.
+      #
+      # This job deliberately performs no Entra operations. The app registration, the app
+      # role and the role assignment are one-time setup done by scripts/deploy.sh from a
+      # workstation, which keeps the CI identity down to Contributor on one resource group
+      # instead of needing directory permissions.
+      - name: Build and push both images
+        id: images
+        run: |
+          set -euo pipefail
+          az extension add --name containerapp --upgrade --only-show-errors
+          ACR=$(az acr list -g "$RESOURCE_GROUP" --query "[0].name" -o tsv)
+          SERVER=$(az acr show -n "$ACR" --query loginServer -o tsv)
+          az acr login -n "$ACR"
+
+          TAG="${GITHUB_SHA::12}"
+          for pair in "quotes-api:Day17/backend" "quotes-bff:Day17/bff"; do
+            name="${pair%%:*}"; src="${pair#*:}"
+            docker build -t "$SERVER/$name:$TAG" "$src"
+            docker push "$SERVER/$name:$TAG"
+          done
+
+          az containerapp update -n "$API_APP_NAME" -g "$RESOURCE_GROUP" \
+            --image "$SERVER/quotes-api:$TAG"
+          az containerapp update -n "$BFF_APP_NAME" -g "$RESOURCE_GROUP" \
+            --image "$SERVER/quotes-bff:$TAG"
+
+      - name: Resolve the broker's hostname
+        id: bff
+        run: |
+          set -euo pipefail
+          FQDN=$(az containerapp show -n "$BFF_APP_NAME" -g "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          echo "origin=https://$FQDN" >> "$GITHUB_OUTPUT"
+
+      # The hostname changes whenever the environment is rebuilt, so it is stamped into the
+      # bundle and the CSP at build time rather than committed and hoped for.
+      - name: Point the frontend at the broker
+        run: node Day17/scripts/set-bff-url.mjs "${{ steps.bff.outputs.origin }}"
+
+      - name: Build the Angular app
+        working-directory: Day17/frontend
+        run: |
+          npm ci
+          npx ng build --configuration production
+
+      # Static Web Apps is the intended host and is tried first. It is not always creatable:
+      # SWA exists only in centralus, eastus2, westus2, westeurope and eastasia, and a
+      # subscription carrying the sys.regionrestriction policy may permit none of those — on
+      # Azure for Students the permitted set is disjoint from SWA's, and the policy is
+      # Microsoft-locked. Falling back to the same nginx-on-Container-Apps host that
+      # scripts/deploy.sh uses keeps this pipeline honest instead of red for a reason nobody
+      # can act on.
+      #
+      # When the SWA path IS taken, the deployment token is fetched through the OIDC session
+      # and used within this one step. Storing it as a GitHub secret would work, but it would
+      # be one more long-lived credential to rotate, and the point of today is not having any.
+      - name: Publish the frontend
+        id: frontend
+        run: |
+          set -euo pipefail
+
+          if az staticwebapp show -n "$SWA_NAME" -g "$RESOURCE_GROUP" >/dev/null 2>&1; then
+            echo "Static Web App '$SWA_NAME' found — publishing there."
+            TOKEN=$(az staticwebapp secrets list -n "$SWA_NAME" -g "$RESOURCE_GROUP" \
+              --query properties.apiKey -o tsv)
+            npx --yes @azure/static-web-apps-cli@latest deploy \
+              Day17/frontend/dist/quotes-web/browser \
+              --deployment-token "$TOKEN" \
+              --env production
+            URL="https://$(az staticwebapp show -n "$SWA_NAME" -g "$RESOURCE_GROUP" \
+              --query defaultHostname -o tsv)"
+          else
+            echo "::notice::Static Web Apps is not creatable in this subscription (sys.regionrestriction). Publishing to the nginx host on Container Apps instead."
+            ACR=$(az acr list -g "$RESOURCE_GROUP" --query "[0].name" -o tsv)
+            SERVER=$(az acr show -n "$ACR" --query loginServer -o tsv)
+            TAG="${GITHUB_SHA::12}"
+            # The Angular build runs inside this image, after set-bff-url.mjs has already
+            # stamped the broker hostname into environment.production.ts.
+            docker build -t "$SERVER/quotes-web:$TAG" Day17/frontend
+            docker push "$SERVER/quotes-web:$TAG"
+            az containerapp update -n "$WEB_APP_NAME" -g "$RESOURCE_GROUP" \
+              --image "$SERVER/quotes-web:$TAG"
+            URL="https://$(az containerapp show -n "$WEB_APP_NAME" -g "$RESOURCE_GROUP" \
+              --query properties.configuration.ingress.fqdn -o tsv)"
+          fi
+
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Frontend published to $URL"
+
+      - name: Smoke-test the deployment
+        run: |
+          set -euo pipefail
+          SWA_URL="${{ steps.frontend.outputs.url }}"
+          BFF="${{ steps.bff.outputs.origin }}"
+
+          # A new Container Apps revision takes a moment to accept traffic, so this retries
+          # rather than racing it and failing on a deployment that is merely still starting.
+          echo "Checking $SWA_URL"
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl -sf -o /dev/null "$SWA_URL"; then break; fi
+            [ "$attempt" -eq 8 ] && { echo "::error::$SWA_URL never became reachable."; exit 1; }
+            echo "  not ready yet, retrying ($attempt/8)…"; sleep 15
+          done
+
+          # The managed-identity hop, asserted rather than assumed: the API is asked who it
+          # just authenticated, and the answer has to be an application identity.
+          echo "Checking the managed-identity hop via $BFF/api/whoami"
+          curl -sf "$BFF/api/whoami" | tee /tmp/whoami.json
+          grep -q '"identityType":"app"' /tmp/whoami.json \
+            || { echo "::error::The API did not authenticate an application identity."; exit 1; }
+
+          # And the negative: the API must refuse a request that did not come through the
+          # broker. If this ever returns 200, the enforcement has been switched off.
+          API_URL="https://$(az containerapp show -n "$API_APP_NAME" -g "$RESOURCE_GROUP" \
+            --query properties.configuration.ingress.fqdn -o tsv)"
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$API_URL/api/quotes")
+          [ "$STATUS" = "401" ] \
+            || { echo "::error::API answered $STATUS without a caller token; expected 401."; exit 1; }
+          echo "Direct call without a managed-identity token correctly refused ($STATUS)."

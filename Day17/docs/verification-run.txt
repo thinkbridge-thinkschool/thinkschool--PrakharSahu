@@ -1,0 +1,242 @@
+Day 17 verification — 2026-08-29T10:05:49Z
+frontend : https://quotes-web.happydesert-51845d93.centralindia.azurecontainerapps.io
+           NOT Azure Static Web Apps. SWA is offered only in centralus, eastus2,
+           westus2, westeurope and eastasia, and this subscription's
+           sys.regionrestriction policy permits none of them. The bundle is served
+           by nginx on Container Apps with a hand-translated copy of
+           staticwebapp.config.json, so the checks below measure the same rules.
+bff      : https://quotes-bff.happydesert-51845d93.centralindia.azurecontainerapps.io
+api      : https://quotes-api.happydesert-51845d93.centralindia.azurecontainerapps.io
+
+
+================================================================
+ 1. The live URL loads
+================================================================
+
+--- GET https://quotes-web.happydesert-51845d93.centralindia.azurecontainerapps.io
+  HTTP 200
+  [PASS] Static Web App responds 200
+  [PASS] index.html contains the Angular root element
+
+--- Deep link falls back to index.html (client-side routing)
+  [PASS] GET /quotes/1 -> 200 (navigationFallback works)
+
+--- Security headers
+  [PASS] content-security-policy present
+  [PASS] strict-transport-security present
+  [PASS] x-content-type-options present
+  [PASS] referrer-policy present
+      content-security-policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://quotes-bff.happydesert-51845d93.centralindia.azurecontainerapps.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+
+
+================================================================
+ 2. The API call carries a managed-identity token
+================================================================
+
+--- The token the BFF is presenting — GET https://quotes-bff.happydesert-51845d93.centralindia.azurecontainerapps.io/bff/identity
+      {
+        "audience": "api://729a2be3-9609-4fd1-b7c5-e658386f9bfd",
+        "issuer": "https://sts.windows.net/8d46a076-d093-416d-a57b-8692cde13bf8/",
+        "tenantId": "8d46a076-d093-416d-a57b-8692cde13bf8",
+        "applicationId": "419a890f-a260-4565-ab20-def876d48d8f",
+        "objectId": "9283650e-f2aa-406d-b61b-bde2d3096c85",
+        "roles": [
+          "Api.Invoke"
+        ],
+        "subjectIsUser": false,
+        "expiresAt": "2026-08-30T09:59:16.000Z",
+        "source": "ManagedIdentityCredential (IMDS)"
+      }
+  [PASS] token came from IMDS (ManagedIdentityCredential), not a secret
+  [PASS] token carries the Api.Invoke app role
+  [PASS] app-only token — no user in the loop
+
+--- What the API says it authenticated — GET https://quotes-bff.happydesert-51845d93.centralindia.azurecontainerapps.io/api/whoami
+      {
+        "callerIdentity": {
+          "applicationId": "419a890f-a260-4565-ab20-def876d48d8f",
+          "objectId": "9283650e-f2aa-406d-b61b-bde2d3096c85",
+          "tenantId": "8d46a076-d093-416d-a57b-8692cde13bf8",
+          "audience": "api://729a2be3-9609-4fd1-b7c5-e658386f9bfd",
+          "issuer": "https://sts.windows.net/8d46a076-d093-416d-a57b-8692cde13bf8/",
+          "roles": [
+            "Api.Invoke"
+          ],
+          "identityType": "app",
+          "userPrincipalName": null
+        },
+        "endUser": null,
+        "note": "endUser is null for anonymous requests; callerIdentity is never null when CallerIdentity enforcement is enabled."
+      }
+  [PASS] API confirms the caller is an application identity
+  [PASS] API validated the Api.Invoke role on the incoming token
+  [PASS] no user principal on the caller token (proves it is not a signed-in human)
+
+--- NEGATIVE: the same endpoints called directly, with no managed-identity token
+  [PASS] GET https://quotes-api.happydesert-51845d93.centralindia.azurecontainerapps.io/api/quotes without X-Caller-Token -> 401
+  [PASS] GET https://quotes-api.happydesert-51845d93.centralindia.azurecontainerapps.io/api/whoami without X-Caller-Token -> 401
+      {"error":"caller-token-invalid","detail":"This API only accepts requests carrying a valid X-Caller-Token."}
+
+--- NEGATIVE: a forged caller token
+  [PASS] garbage caller token -> 401
+
+
+================================================================
+ 3. Real Week-1 endpoints, through the deployed path
+================================================================
+
+--- GET /api/quotes (the list the app's home page renders)
+  HTTP 200
+  [PASS] list endpoint returns 200 through the BFF
+  quotes returned: 5
+      [{"id":1,"text":"That brain of mine is something more than merely mortal, as time will show.","author":"Ada Lovelace","createdAt":"2026-08-29T10:03:56.6897582+00:00","isDeleted":false,"userId":0},{"id":2,"text":"The most damaging phrase in the language is, we have always done it this way.","author":"Grace Hopper","createdAt":"2026-08-29T10:03:56.7515115+00:00","isDeleted":false,"userId":0},{"id":3
+
+--- GET /api/quotes/{id} — 404 path (ERROR STATE)
+  [PASS] unknown id -> 404
+
+--- POST /api/auth/login with wrong credentials (FAILED-AUTH STATE)
+  [PASS] bad credentials -> 401 (and the MI hop still succeeded)
+
+
+--- POST /api/quotes with no user token (401 — user auth is independent of MI auth)
+  [PASS] write without a user token -> 401, even though the MI token was valid
+
+--- Register a throwaway user — POST /api/auth/register
+  HTTP 201 as day17-verify-1787997955@example.invalid
+  [PASS] registration returned a usable access token
+
+--- Both identities on one request — GET /api/whoami with a user token
+      {
+        "callerIdentity": {
+          "applicationId": "419a890f-a260-4565-ab20-def876d48d8f",
+          "objectId": "9283650e-f2aa-406d-b61b-bde2d3096c85",
+          "tenantId": "8d46a076-d093-416d-a57b-8692cde13bf8",
+          "audience": "api://729a2be3-9609-4fd1-b7c5-e658386f9bfd",
+          "issuer": "https://sts.windows.net/8d46a076-d093-416d-a57b-8692cde13bf8/",
+          "roles": [
+            "Api.Invoke"
+          ],
+          "identityType": "app",
+          "userPrincipalName": null
+        },
+        "endUser": {
+          "subject": "1",
+          "email": "day17-verify-1787997955@example.invalid",
+          "scopes": [
+            "quotes.write"
+          ],
+          "authenticationType": "AuthenticationTypes.Federation"
+        },
+        "note": "endUser is null for anonymous requests; callerIdentity is never null when CallerIdentity enforcement is enabled."
+      }
+  [PASS] caller is still the managed identity
+  [PASS] end user is the registered human, NOT the managed identity
+  [PASS] user token carries the quotes.write scope
+
+--- POST /api/quotes — create (201)
+  [PASS] created -> 201
+      {"id":6,"text":"That brain of mine is something more than merely mortal.","author":"Ada Lovelace","createdAt":"2026-08-29T10:05:58.8902073+00:00","isDeleted":false,"userId":1}
+  [PASS] response carries 'id'
+  [PASS] response carries 'text'
+  [PASS] response carries 'author'
+  [PASS] response carries 'createdAt'
+  [PASS] response carries 'isDeleted'
+  [PASS] response carries 'userId'
+
+--- POST the same author+text again — duplicate (409)
+  [PASS] duplicate rejected -> 409
+
+--- GET /api/quotes/6 — read back (200)
+  [PASS] read back -> 200
+
+--- DELETE /api/quotes/6 as the owner (204)
+  [PASS] owner delete -> 204 (ownership resolved against the USER, not the identity)
+
+--- GET /api/quotes/6 after the soft delete (404)
+  [PASS] soft-deleted quote -> 404
+
+--- CORS preflight from the Static Web App origin
+  [PASS] preflight echoes the SWA origin
+  [PASS] credentials allowed (needed for the refresh cookie)
+
+--- CORS rejects an origin that is not the Static Web App
+  [PASS] unknown origin gets no CORS grant
+
+
+================================================================
+ 4. No secret anywhere in the managed-identity path
+================================================================
+
+--- Repository scan
+  [PASS] no client secret, account key, or password literal in Day17/
+
+--- BFF app settings — every environment variable, in full
+      [
+        {
+          "name": "UPSTREAM_API_BASE",
+          "value": "https://quotes-api.happydesert-51845d93.centralindia.azurecontainerapps.io"
+        },
+        {
+          "name": "API_APP_ID_URI",
+          "value": "api://729a2be3-9609-4fd1-b7c5-e658386f9bfd"
+        },
+        {
+          "name": "ALLOWED_ORIGINS",
+          "value": "https://quotes-web.happydesert-51845d93.centralindia.azurecontainerapps.io"
+        }
+      ]
+  Container Apps secrets defined on the BFF: 0
+  [PASS] the BFF holds zero secrets — its only credential is minted at runtime from IMDS
+
+--- The API's own settings, stated honestly
+      [
+        "jwt-key"
+      ]
+      Read this carefully rather than as a pass/fail.
+
+      The API does hold Container Apps secrets, and they are NOT part of the
+      managed-identity path:
+
+        jwt-key        signs the tokens the API issues to its own end users. It is a
+                       signing key, not a credential for calling anything. Removing it
+                       would not remove a client secret; it would remove the ability to
+                       log a human in at all.
+
+      That is the whole list — one entry. No seed account is configured either, because
+      the verification below registers a throwaway user through the real
+      POST /api/auth/register instead, leaving no bootstrap password to store.
+
+      What the exercise asks about — a client secret used to authenticate the frontend
+      tier to the API — does not exist. The BFF authenticates with a token IMDS mints on
+      demand. There is no credential to rotate, leak, or check in, which is why the BFF's
+      secret count above is zero.
+
+--- App registration has no credentials of its own
+  passwordCredentials: 0   keyCredentials: 0
+  [PASS] the app registration has no client secret and no certificate
+
+
+================================================================
+ 5. Lighthouse
+================================================================
+
+--- Running Lighthouse against https://quotes-web.happydesert-51845d93.centralindia.azurecontainerapps.io
+  [PASS] Performance      100
+  [PASS] Accessibility    100
+  [PASS] Best Practices   100
+  [PASS] SEO              100
+
+         First Contentful Paint     0.4 s
+         Largest Contentful Paint   0.7 s
+         Total Blocking Time        10 ms
+         Cumulative Layout Shift    0
+         Speed Index                0.5 s
+
+  Full report: Day17/docs/lighthouse.report.html
+
+
+================================================================
+ Result
+================================================================
+  42 passed, 0 failed
+

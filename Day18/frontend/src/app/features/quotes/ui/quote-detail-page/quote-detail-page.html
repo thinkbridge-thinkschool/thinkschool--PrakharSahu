@@ -1,0 +1,59 @@
+<section aria-labelledby="detail-heading">
+  <!-- `preserve` carries ?q= back, so the user returns to the filtered list they came from. -->
+  <p class="crumb">
+    <a routerLink="/quotes" queryParamsHandling="preserve" data-testid="back-link">
+      <span aria-hidden="true">←</span> All quotes
+    </a>
+  </p>
+
+  @switch (status()) {
+    @case ('loading') {
+      <article class="quote-card detail skeleton" aria-hidden="true">
+        <span class="bar bar-narrow"></span>
+        <span class="bar bar-wide"></span>
+        <span class="bar bar-wide"></span>
+      </article>
+      <p class="sr-only" role="status" data-testid="detail-loading">Loading quote #{{ id() }}…</p>
+    }
+
+    @case ('failed') {
+      <div class="error" role="alert" data-testid="detail-error">
+        <p class="error-message" data-testid="detail-error-message">
+          {{ error()?.friendlyMessage }}
+        </p>
+        <p class="muted">kind={{ error()?.kind }} · status={{ error()?.status }}</p>
+        <p class="muted"><a routerLink="/quotes" queryParamsHandling="preserve">Back to all quotes</a></p>
+      </div>
+    }
+
+    @default {
+      @if (quote(); as loaded) {
+        <article
+          class="quote-card detail"
+          [style.view-transition-name]="transitionName()"
+          data-testid="detail-card"
+        >
+          <h2 id="detail-heading" class="detail-id">Quote #{{ loaded.id }}</h2>
+
+          <blockquote class="detail-quote">{{ loaded.text }}</blockquote>
+
+          <p class="detail-attribution">
+            — <span class="author" data-testid="detail-author">{{ loaded.author }}</span>
+          </p>
+
+          <!-- Every field the endpoint returns, including the two the list hides. -->
+          <dl class="fields">
+            <dt>createdAt</dt>
+            <dd>
+              <time [attr.datetime]="loaded.createdAt">{{ loaded.createdAt | date: 'medium' }}</time>
+            </dd>
+            <dt>userId</dt>
+            <dd>{{ loaded.userId }}</dd>
+            <dt>isDeleted</dt>
+            <dd>{{ loaded.isDeleted }}</dd>
+          </dl>
+        </article>
+      }
+    }
+  }
+</section>

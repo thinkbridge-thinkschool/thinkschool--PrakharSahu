@@ -1,0 +1,72 @@
+<section aria-labelledby="register-heading" data-testid="register-page">
+  <h2 id="register-heading">Create an account</h2>
+  <p class="muted">
+    <code>POST /api/auth/register</code> — creates the account and signs you straight in.
+  </p>
+
+  @if (returnUrl() !== '/quotes') {
+    <p class="notice" data-testid="return-url-notice">
+      You will be sent to <code data-testid="return-url">{{ returnUrl() }}</code> afterwards.
+    </p>
+  }
+
+  <form novalidate (submit)="onSubmit($event)" class="sign-in-form">
+    <div class="field">
+      <label for="register-email">Email</label>
+      <input
+        id="register-email"
+        type="email"
+        name="email"
+        autocomplete="username"
+        [value]="email()"
+        (input)="onEmail($event)"
+      />
+    </div>
+
+    <div class="field">
+      <label for="register-password">Password</label>
+      <input
+        id="register-password"
+        type="password"
+        name="password"
+        autocomplete="new-password"
+        aria-describedby="register-password-hint"
+        [attr.aria-invalid]="passwordTooShort() || null"
+        [value]="password()"
+        (input)="onPassword($event)"
+      />
+    </div>
+
+    <button
+      type="submit"
+      [attr.aria-disabled]="!canSubmit() || null"
+      data-testid="register-submit"
+    >
+      {{ busy() ? 'Creating account…' : 'Create account' }}
+    </button>
+
+    <!--
+      A hint rather than a `minlength` attribute: `minlength` blocks submission silently in some
+      browsers and only speaks at submit time in others, whereas an aria-describedby hint is
+      announced as soon as the field takes focus.
+
+      It sits on its own row rather than inside the password `.field` because `.sign-in-form` is
+      `align-items: end` — an extra child inside one field makes that column taller and drops the
+      email input and the button out of alignment with it.
+    -->
+    <p id="register-password-hint" class="muted form-hint" data-testid="password-hint">
+      At least {{ minimumPasswordLength }} characters.
+    </p>
+  </form>
+
+  @if (failure(); as message) {
+    <p class="error-message" role="alert" data-testid="register-error">{{ message }}</p>
+  }
+
+  <p class="muted">
+    Already have an account?
+    <a routerLink="/sign-in" [queryParams]="{ returnUrl: returnUrl() }" data-testid="to-sign-in">
+      Sign in instead
+    </a>
+  </p>
+</section>

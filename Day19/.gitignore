@@ -1,0 +1,24 @@
+# Written by deploy.sh — resolved URLs and resource ids for verify.sh to read.
+# Not secret, but it is machine-generated per environment and should not be committed.
+.deploy-output.json
+
+node_modules/
+dist/
+.angular/
+
+# Never commit these. The whole point of Day 17 is that no credential is stored anywhere.
+.env
+.env.*
+.azure/
+*.pfx
+*.pem
+
+# Response bodies captured by verify.sh.
+.verify-tmp/
+
+# Throwaway SQLite files from scripts/smoke-local.sh.
+smoke-test-*.db*
+
+# Generated locally by scripts/start-emulator.sh. Holds a SQL SA password for a
+# throwaway container — generated, never committed.
+scripts/emulator/.env

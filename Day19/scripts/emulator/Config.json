@@ -1,0 +1,70 @@
+{
+  "UserConfig": {
+    "Namespaces": [
+      {
+        "Name": "sbemulatorns",
+        "Topics": [
+          {
+            "Name": "quote-events",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H",
+              "DuplicateDetectionHistoryTimeWindow": "PT20S",
+
+              "//RequiresDuplicateDetection": [
+                "Left OFF deliberately, even though this exercise is about idempotency.",
+                "Broker-side duplicate detection drops a message whose MessageId was seen in",
+                "the last 20 seconds — it protects against a publisher retrying a send, and",
+                "nothing else. It does NOT protect against the case that actually matters: a",
+                "consumer that did the work and died before settling, whose message is then",
+                "redelivered minutes later. Only the consumer can defend against that, which is",
+                "why dedupe lives in the handler. Turning this on would mask the behaviour",
+                "being demonstrated without solving it."
+              ],
+              "RequiresDuplicateDetection": false
+            },
+            "Subscriptions": [
+              {
+                "//": "Subscription 1 of 2. No Rules, so it receives EVERY message published to the topic — the fan-out this exercise is about.",
+                "Name": "audit",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": true,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+
+                  "//MaxDeliveryCount": [
+                    "3, not the Azure default of 10. This is the number that makes the",
+                    "dead-letter demonstration take seconds instead of a minute: a poison",
+                    "message is delivered three times, fails three times, and the broker moves",
+                    "it to the DLQ with DeadLetterReason=MaxDeliveryCountExceeded.",
+                    "The limit is enforced HERE, by the broker. No client setting can change it."
+                  ],
+                  "MaxDeliveryCount": 3,
+
+                  "ForwardDeadLetteredMessagesTo": "",
+                  "ForwardTo": "",
+                  "RequiresSession": false
+                }
+              },
+              {
+                "//": "Subscription 2 of 2. Also unfiltered — it gets its own independent copy of every message, with its own delivery counts and its own dead-letter queue.",
+                "Name": "search-index",
+                "Properties": {
+                  "DeadLetteringOnMessageExpiration": true,
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 3,
+                  "ForwardDeadLetteredMessagesTo": "",
+                  "ForwardTo": "",
+                  "RequiresSession": false
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "Logging": {
+      "Type": "File"
+    }
+  }
+}

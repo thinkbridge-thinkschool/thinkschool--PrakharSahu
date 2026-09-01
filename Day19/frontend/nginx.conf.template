@@ -1,0 +1,70 @@
+# Static host configuration — a stand-in for Azure Static Web Apps.
+#
+# THIS IS NOT THE DELIVERABLE. The deliverable is public/staticwebapp.config.json, which is
+# what Static Web Apps reads. This file exists only because Static Web Apps cannot be created
+# in the target subscription at all: SWA is offered in centralus, eastus2, westus2,
+# westeurope and eastasia, the subscription's sys.regionrestriction policy permits only
+# indonesiacentral, centralindia, malaysiawest, uaenorth and koreacentral, and the two sets do
+# not intersect.
+#
+# Every rule below is a deliberate translation of a rule in staticwebapp.config.json, so the
+# Lighthouse run and the header checks measure the same thing the real host would serve. Where
+# the two files disagree, staticwebapp.config.json is correct and this one is the copy.
+#
+# ${BFF_ORIGIN} is substituted at container start by the nginx image's envsubst step, from the
+# environment variable of the same name. nginx's own $uri, $host and friends are untouched
+# because envsubst only replaces names that actually exist in the environment.
+
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 256;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml application/manifest+json;
+
+    # Mirrors "globalHeaders". connect-src names the broker and nothing else, so an injected
+    # script has nowhere to exfiltrate to.
+    add_header content-security-policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${BFF_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
+    add_header strict-transport-security "max-age=63072000; includeSubDomains; preload" always;
+    add_header x-content-type-options "nosniff" always;
+    add_header referrer-policy "strict-origin-when-cross-origin" always;
+    add_header permissions-policy "camera=(), microphone=(), geolocation=(), interest-cohort=()" always;
+    add_header cross-origin-opener-policy "same-origin" always;
+
+    # Mirrors the immutable cache route. Content-hashed filenames, so a year is safe and any
+    # change ships under a new name.
+    location ~* \.(?:js|mjs|css|woff2?|png|jpe?g|svg|webp|avif|ico)$ {
+        expires 1y;
+        add_header cache-control "public, max-age=31536000, immutable" always;
+        # add_header does not inherit into a location block, so the security headers have to
+        # be repeated here or these responses would ship without them.
+        add_header x-content-type-options "nosniff" always;
+        add_header strict-transport-security "max-age=63072000; includeSubDomains; preload" always;
+        try_files $uri =404;
+    }
+
+    # Mirrors the index.html no-cache route. The one file whose name never changes, so caching
+    # it strands users on an old build.
+    location = /index.html {
+        add_header cache-control "no-cache, must-revalidate" always;
+        add_header content-security-policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${BFF_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
+        add_header strict-transport-security "max-age=63072000; includeSubDomains; preload" always;
+        add_header x-content-type-options "nosniff" always;
+        add_header referrer-policy "strict-origin-when-cross-origin" always;
+        add_header permissions-policy "camera=(), microphone=(), geolocation=(), interest-cohort=()" always;
+        add_header cross-origin-opener-policy "same-origin" always;
+    }
+
+    # Mirrors "navigationFallback": the app routes on the client, so a cold load of /quotes/7
+    # has to be answered with index.html rather than 404. The asset extensions above are
+    # matched first and end in =404, which is the equivalent of the fallback "exclude" list —
+    # without it a mistyped asset path returns index.html with a 200 and the browser tries to
+    # parse HTML as JavaScript.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

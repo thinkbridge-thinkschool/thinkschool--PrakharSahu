@@ -1,0 +1,84 @@
+=== Building ===
+  built.
+
+=== Redis ===
+  day21-redis is up — HybridCache will use it as L2.
+
+=== Starting the API ===
+  up (pid 1400)
+  layers: L1 in-memory + L2 Redis
+  simulated query cost: 250ms
+
+
+================================================================
+ 1. BEFORE — cache OFF (every read hits the database)
+================================================================
+
+--- before — 50 connections for 15s against GET /api/quotes
+        Reqs/sec       185.69     521.60    3239.16
+        Latency      265.06ms     2.62ms   300.96ms
+        Latency Distribution
+           99%   299.40ms
+          1xx - 0, 2xx - 2850, 3xx - 0, 4xx - 0, 5xx - 0
+
+      requests served : 2850
+      DB queries      : 2858
+      cache hits      : 0 (0%)
+
+
+================================================================
+ 2. AFTER — cache ON (HybridCache, L1 + L2)
+================================================================
+
+--- after — 50 connections for 15s against GET /api/quotes
+        Reqs/sec     52868.08   10574.84   68700.84
+        Latency        0.95ms     0.90ms   305.42ms
+        Latency Distribution
+           99%     2.24ms
+          1xx - 0, 2xx - 790608, 3xx - 0, 4xx - 0, 5xx - 0
+
+      requests served : 790608
+      DB queries      : 8
+      cache hits      : 790607 (100%)
+
+
+================================================================
+ 3. Before / after
+================================================================
+
+                          BEFORE (no cache) AFTER (HybridCache)
+  requests served                      2850             790608
+  requests/sec                       185.69           52868.08
+  p99 latency                      299.40ms             2.24ms
+  DB queries                           2858                  8
+  cache hit rate                         0%               100%
+
+  DB queries per request : 1.003  ->  0.000
+  DB load reduction      : 100.0%
+  [PASS] the cache cut absolute database queries (2858 -> 8)
+  [PASS] hit rate 100% (>= 90%)
+
+
+================================================================
+ 4. Stampede protection under concurrency
+================================================================
+
+--- Cold cache, then 200 simultaneous requests for the same key
+      200 concurrent requests issued, 200 returned 200, in 409ms
+
+      reads (requests)     : 200
+      misses (factory runs): 1
+      DB queries           : 1
+      hit rate             : 99.5%
+  [PASS] 200 concurrent readers of a cold key caused only 1 factory invocation(s) — the stampede was collapsed
+
+      Without stampede protection this number would be close to 200 — one database
+      query per concurrent caller, all for the same value, precisely when the system
+      is busiest.
+
+
+================================================================
+ Result
+================================================================
+  3 passed, 0 failed
+

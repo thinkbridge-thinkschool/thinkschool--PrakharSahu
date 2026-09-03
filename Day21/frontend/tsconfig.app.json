@@ -1,0 +1,22 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    /* Required explicitly from TypeScript 6 onward whenever `outDir` is set, otherwise the
+       output layout depends on which files happen to be included. Pinning it to ./src keeps
+       the layout stable as files are added or excluded. */
+    "rootDir": "./src",
+    /* No ambient test globals in the application build: if `describe` or `expect` ever
+       resolves in shipped code, something test-only has leaked into the bundle. */
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "src/**/*.spec.ts",
+    /* Test-only helpers live here. Without this they fall to the app project, which has no
+       vitest types, and fail with a misleading "Cannot find name 'expect'". */
+    "src/testing/**/*.ts"
+  ]
+}

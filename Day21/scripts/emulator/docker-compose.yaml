@@ -1,0 +1,50 @@
+# Azure Service Bus emulator — the real broker semantics, locally and free.
+#
+# This is Microsoft's own emulator, not a stand-in: it enforces MaxDeliveryCount, moves
+# messages to the dead-letter queue itself, and speaks the same AMQP protocol the production
+# SDK does. The application code in Day19/backend does not know the difference; only the
+# connection string changes.
+#
+# Two containers, because the emulator stores its state in SQL Server.
+#
+# Started by ../start-emulator.sh, which generates the .env this file needs.
+
+name: day19-servicebus-emulator
+
+services:
+  emulator:
+    container_name: "day19-servicebus-emulator"
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    pull_policy: missing
+    volumes:
+      # Defines the topic and its two subscriptions. The emulator reads this once at start,
+      # so changing Config.json means recreating the container, not restarting it.
+      - "${CONFIG_PATH}:/ServiceBus_Emulator/ConfigFiles/Config.json"
+    ports:
+      - "5672:5672"                              # AMQP — publishing and consuming
+      - "5300:${EMULATOR_HTTP_PORT:-5300}"       # health + management operations
+    environment:
+      SQL_SERVER: mssql
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+      ACCEPT_EULA: ${ACCEPT_EULA}
+      EMULATOR_HTTP_PORT: ${EMULATOR_HTTP_PORT:-5300}
+    depends_on:
+      - mssql
+    networks:
+      sb-emulator:
+        aliases:
+          - "sb-emulator"
+
+  mssql:
+    container_name: "day19-servicebus-mssql"
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    networks:
+      sb-emulator:
+        aliases:
+          - "mssql"
+    environment:
+      ACCEPT_EULA: ${ACCEPT_EULA}
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+
+networks:
+  sb-emulator:

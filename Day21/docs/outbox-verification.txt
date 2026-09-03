@@ -1,0 +1,107 @@
+=== Building ===
+  built.
+
+
+================================================================
+ 1. The domain change and the event commit together
+================================================================
+  process 1 up (pid 1671)
+
+--- Authenticate
+  [PASS] registered
+
+--- Arm the relay to crash BEFORE publishing
+  armed: BeforePublish
+
+--- Create a quote (POST /api/quotes)
+  [PASS] quote 6 created
+
+--- The outbox row exists and is Pending
+  pending=1 processed=0
+      {
+        "pending": 1,
+        "processed": 0,
+        "total": 1,
+        "recent": [
+          {
+            "id": "2a25e439-5b6b-41fb-ad04-734293661b9a",
+            "type": "quote.created",
+            "aggregateType": "Quote",
+            "aggregateId": "6",
+            "status": "Pending",
+            "occurredAt": "2026-09-02T05:51:02.0016824",
+            "processedAt": null,
+            "attempts": 0,
+            "lastError": null,
+            "lockedBy": "BRAVO-15:25060",
+            "lockedUntil": "2026-09-02T05:51:32.1090341",
+            "nextAttemptAt": null
+          }
+        ]
+  [PASS] event is durably written but NOT yet published (id 2a25e439-5b6b-41fb-ad04-734293661b9a)
+  [PASS] log confirms the quote and the outbox row were staged in one transaction
+
+
+================================================================
+ 2. Kill the process mid-flight (taskkill /F — a power cut, not a shutdown)
+================================================================
+
+--- Confirm the relay really was failing before the publish
+  [PASS] relay crashed before handing the message to the broker
+
+--- taskkill /F
+  [PASS] process 1 is dead — no StopAsync ran, nothing drained
+
+
+================================================================
+ 3. Restart — the message is still there and gets published
+================================================================
+
+--- Start a NEW process against the SAME database file
+  process 2 up (pid 1717)
+
+--- The quote survived the crash
+  [PASS] quote 6 is still there
+
+--- …and so did its unpublished event, which the new relay now drains
+      {
+        "id": "2a25e439-5b6b-41fb-ad04-734293661b9a",
+        "type": "quote.created",
+        "aggregateType": "Quote",
+        "aggregateId": "6",
+        "status": "Published",
+        "occurredAt": "2026-09-02T05:51:02.0016824",
+        "processedAt": "2026-09-02T05:51:32.382881",
+        "attempts": 1,
+        "lastError": null,
+        "payload": "{\"QuoteId\":6,\"Author\":\"Grace Hopper\",\"Text\":\"The most damaging phrase is, we have always done it this way.\",\"CreatedAt\":\"2026-09-02T05:51:02.0016824+00:00\"}"
+      }
+  [PASS] the pending event was published after restart — NOTHING WAS LOST
+  [PASS] message 2a25e439-5b6b-41fb-ad04-734293661b9a is now Published
+  [PASS] process 2's relay log confirms the publish
+
+
+================================================================
+ 4. Why this is at-least-once, not exactly-once
+================================================================
+      The crash above happened BEFORE the publish, so the message went out exactly once.
+
+      The other crash point cannot be made that clean. If the relay publishes and then dies
+      before writing ProcessedAt, the broker has the message but the row still says pending —
+      so the restarted relay publishes it AGAIN. There is no way to make "hand it to the
+      broker" and "record that we did" atomic, so one of them must be able to happen twice.
+
+      The outbox chooses to duplicate rather than to lose, because a duplicate is recoverable
+      by the consumer and a loss is recoverable by nobody. Both copies carry the same
+      MessageId — the outbox row's own id — so Day 19's dedupe collapses them into one
+      effective delivery.
+
+      That path is proven deterministically in:
+        tests/QuotesApi.Outbox.Tests -> Crash_after_publish_before_mark_duplicates_rather_than_loses
+
+
+================================================================
+ Result
+================================================================
+  10 passed, 0 failed
+

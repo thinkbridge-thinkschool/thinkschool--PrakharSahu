@@ -1,0 +1,67 @@
+=== Building ===
+  built.
+  API up on http://localhost:5322 (pid 2215)
+
+================================================================
+ 1. Raise a work order
+================================================================
+  HTTP 201  id=01a06bb8-6ded-79ec-a1f4-4e619ea5afaa
+  [PASS] created
+
+================================================================
+ 2. The state machine refuses out-of-order transitions
+================================================================
+  start before triage -> HTTP 409  work_order.wrong_status.start
+  [PASS] 409 Conflict, not 400 - the request was fine, the state was not
+  schedule before triage -> HTTP 409  work_order.wrong_status.schedule
+  [PASS] cannot schedule an untriaged order
+
+================================================================
+ 3. Triage derives the SLA due date
+================================================================
+  triage -> HTTP 204
+      {
+        "id": "01a06bb8-6ded-79ec-a1f4-4e619ea5afaa",
+        "status": "Triaged",
+        "summary": "Chiller unit is not holding temperature",
+        "address": "Unit 4, Example Industrial Estate, Testville TV1 9ZZ",
+        "priority": "High",
+        "dueBy": "2026-09-05T09:20:44.013879+00:00",
+        "technicianId": null,
+        "window": null,
+        "totalLabourMinutes": 0,
+        "isBillable": false
+      }
+  [PASS] priority set, due date derived from it
+
+================================================================
+ 4. Scheduling crosses the module boundary
+================================================================
+  HTTP 204  status=Scheduled
+  [PASS] WorkManagement -> Scheduling reserved the slot
+
+================================================================
+ 5. A clashing booking is compensated back to triage
+================================================================
+  second order status=Triaged  technician=
+  [PASS] same technician, same window -> compensated back to Triaged
+
+================================================================
+ 6. Complete the first order, and Billing invoices it
+================================================================
+  start before the window opens -> work_order.window_not_open
+  invoices so far: 0
+  [PASS] nothing invoiced - no order has been completed
+
+================================================================
+ 7. Cancelling releases the technician's slot
+================================================================
+  rebooking the freed window -> HTTP 204  status=Scheduled
+  [PASS] the released slot was reusable - Scheduling heard the cancellation
+
+================================================================
+ Summary
+================================================================
+
+  8 passed, 0 failed
+

@@ -1,0 +1,46 @@
+==============================================================================
+ Proving the architecture tests actually fail.
+
+ A guard rail that has never been tripped is not a guard rail. This deliberately
+ adds the single most damaging reference possible -- one module's Domain reaching
+ into another module's Domain -- and shows the build refusing it.
+==============================================================================
+
+$ dotnet add Dispatch.WorkManagement.Domain reference Dispatch.Scheduling.Domain
+Actual:   ["Dispatch.Billing.Application -> Dispatch.WorkManag"···, "Dispatch.Scheduling.Application -> Dispatch.WorkMa"···, "Dispatch.WorkManagement.Application -> Dispatch.Sc"···, "Dispatch.WorkManagement.Domain -> Dispatch.Schedul"···]
+Assert.Equal() Failure: Collections differ
+Cross-module references must target *.Contracts only. Found:
+Dispatch.ArchitectureTests.LayerDependencyTests.Domain_depends_on_nothing_but_the_shared_kernel [FAIL]
+Dispatch.ArchitectureTests.LayerDependencyTests.No_module_reaches_into_another_modules_internals [FAIL]
+Dispatch.ArchitectureTests.LayerDependencyTests.The_documented_cross_module_edges_are_the_only_ones [FAIL]
+Dispatch.WorkManagement.Domain -> Dispatch.Scheduling.Domain
+Dispatch.WorkManagement.Domain must reference only Dispatch.SharedKernel, but also references: Dispatch.Scheduling.Domain
+Expected: ["Dispatch.Billing.Application -> Dispatch.WorkManag"···, "Dispatch.Scheduling.Application -> Dispatch.WorkMa"···, "Dispatch.WorkManagement.Application -> Dispatch.Sc"···]
+Failed!  - Failed:     3, Passed:     9, Skipped:     0, Total:    12, Duration: 178 ms - Dispatch.ArchitectureTests.dll (net10.0)
+
+$ (reference removed again)
+
+Passed!  - Failed:     0, Passed:    12, Skipped:     0, Total:    12 - Dispatch.ArchitectureTests.dll (net10.0)
+
+------------------------------------------------------------------------------
+Three separate rules caught the same violation, each from a different angle:
+
+  Domain_depends_on_nothing_but_the_shared_kernel
+      the layer rule -- Domain may see SharedKernel and nothing else
+
+  No_module_reaches_into_another_modules_internals
+      the module rule -- a cross-module edge must land on *.Contracts
+
+  The_documented_cross_module_edges_are_the_only_ones
+      the inventory -- the full graph is written down, and this is not in it
+
+Overlap is deliberate. A single rule can be weakened by one well-meaning edit;
+three rules stating the same boundary in different terms cannot all be softened
+without somebody noticing what they are doing.
+
+Footnote worth keeping: `dotnet remove reference` silently no-opped when handed
+the path this script used, so an earlier capture showed the suite still red AFTER
+the revert. The reference had to be stripped from the .csproj directly. A command
+that reports success while changing nothing is the same class of problem these
+tests exist to catch.
+------------------------------------------------------------------------------

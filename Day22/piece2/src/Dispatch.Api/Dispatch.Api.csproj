@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\WorkManagement\Dispatch.WorkManagement.Infrastructure\Dispatch.WorkManagement.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\WorkManagement\Dispatch.WorkManagement.Application\Dispatch.WorkManagement.Application.csproj" />
+    <ProjectReference Include="..\Modules\WorkManagement\Dispatch.WorkManagement.Contracts\Dispatch.WorkManagement.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Scheduling\Dispatch.Scheduling.Infrastructure\Dispatch.Scheduling.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Scheduling\Dispatch.Scheduling.Application\Dispatch.Scheduling.Application.csproj" />
+    <ProjectReference Include="..\Modules\Scheduling\Dispatch.Scheduling.Contracts\Dispatch.Scheduling.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Billing\Dispatch.Billing.Infrastructure\Dispatch.Billing.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Billing\Dispatch.Billing.Application\Dispatch.Billing.Application.csproj" />
+    <ProjectReference Include="..\Modules\Billing\Dispatch.Billing.Contracts\Dispatch.Billing.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

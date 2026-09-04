@@ -1,0 +1,120 @@
+<section aria-labelledby="list-heading">
+  <div class="page-head">
+    <div>
+      <h2 id="list-heading">All quotes</h2>
+      <p class="lede">
+        {{ store.quotes().length }} from <code>GET /api/quotes</code>
+        @if (search()) {
+          · <strong>{{ visible().length }}</strong> matching “{{ q() }}”
+        }
+        @if (store.pendingRemovals() > 0) {
+          · <span data-testid="pending-count">{{ store.pendingRemovals() }} deleting…</span>
+        }
+      </p>
+    </div>
+
+    <div class="page-actions">
+      <label class="search">
+        <span class="sr-only">Filter quotes</span>
+        <input
+          type="search"
+          placeholder="Filter by author or text…"
+          [value]="q()"
+          (input)="onSearch($event)"
+          data-testid="filter"
+        />
+      </label>
+      <button type="button" (click)="store.load()" [attr.aria-disabled]="store.isLoading() || null">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- One banner per failed delete: two failures must not overwrite each other. -->
+  @for (failure of store.removalFailures(); track failure.id) {
+    <div class="error" role="alert" [attr.data-testid]="'removal-failure-' + failure.id">
+      <p class="error-message">{{ failure.message }}</p>
+      <button type="button" (click)="store.dismissFailure(failure.id)">Dismiss</button>
+    </div>
+  }
+
+  @switch (store.viewStatus()) {
+    @case ('loading') {
+      <ul class="quotes" aria-hidden="true" data-testid="loading">
+        @for (row of [1, 2, 3]; track row) {
+          <li class="quote-card skeleton">
+            <span class="bar bar-wide"></span>
+            <span class="bar bar-narrow"></span>
+          </li>
+        }
+      </ul>
+      <p class="sr-only" role="status">Loading quotes…</p>
+    }
+
+    @case ('empty') {
+      <p class="notice" data-testid="empty">
+        No quotes left. Create one with <code>POST /api/quotes</code>, or refresh.
+      </p>
+    }
+
+    @case ('failed') {
+      <div class="error" role="alert" data-testid="error">
+        <p class="error-message">{{ store.error()?.friendlyMessage }}</p>
+        <button type="button" (click)="store.load()">Try again</button>
+      </div>
+    }
+
+    @default {
+      @if (filteredOut()) {
+        <p class="notice" data-testid="no-matches">
+          No quote matches “{{ q() }}”.
+          <a routerLink="/quotes" [queryParams]="{ q: null }" queryParamsHandling="merge"
+            >Clear the filter</a
+          >
+        </p>
+      } @else {
+        <ul class="quotes" data-testid="quotes">
+          @for (quote of visible(); track quote.id) {
+            <li class="quote-row">
+              <a
+                class="quote-card"
+                [routerLink]="['/quotes', quote.id]"
+                queryParamsHandling="preserve"
+                [style.view-transition-name]="'quote-' + quote.id"
+                [attr.data-testid]="'quote-link-' + quote.id"
+              >
+                <p class="quote-text">{{ quote.text }}</p>
+                <span class="meta">
+                  <span class="author">{{ quote.author }}</span>
+                  <time [attr.datetime]="quote.createdAt">{{
+                    quote.createdAt | date: 'mediumDate'
+                  }}</time>
+                  <span class="id-chip">#{{ quote.id }}</span>
+                </span>
+              </a>
+
+              @if (store.canRemove()) {
+                <button
+                  type="button"
+                  class="row-delete"
+                  [attr.data-testid]="'delete-' + quote.id"
+                  [attr.aria-label]="'Delete quote ' + quote.id"
+                  (click)="store.remove(quote.id)"
+                >
+                  Delete
+                </button>
+              }
+            </li>
+          }
+        </ul>
+
+        @if (!store.canRemove()) {
+          <p class="muted" data-testid="delete-hint">
+            Sign in to delete. <code>DELETE /api/quotes/{{ '{' }}id{{ '}' }}</code> needs a token and
+            only succeeds on quotes you own.
+          </p>
+        }
+      }
+    }
+  }
+</section>

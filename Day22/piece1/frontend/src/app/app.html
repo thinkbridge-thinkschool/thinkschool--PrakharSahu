@@ -1,0 +1,31 @@
+<div class="shell">
+  <header class="masthead">
+    <a class="brand" routerLink="/quotes">
+      <span class="brand-mark" aria-hidden="true">“</span>
+      <h1>Quotes</h1>
+    </a>
+
+    <nav aria-label="Main">
+      <a routerLink="/quotes" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        All quotes
+      </a>
+      <a routerLink="/quotes/new" routerLinkActive="active" data-testid="nav-new">New quote</a>
+      @if (tokens.isSignedIn()) {
+        <button type="button" data-testid="sign-out" (click)="signOut()">
+          <span class="session-dot" aria-hidden="true"></span> Sign out
+        </button>
+      } @else {
+        <a routerLink="/sign-in" routerLinkActive="active" data-testid="nav-sign-in">Sign in</a>
+        <a routerLink="/register" routerLinkActive="active" data-testid="nav-register">
+          Create account
+        </a>
+      }
+    </nav>
+  </header>
+
+  <!-- A <main> landmark, not a bare outlet. Screen-reader users navigate by landmark, and
+       without one there is no way to skip the masthead and nav on every single page. -->
+  <main>
+    <router-outlet />
+  </main>
+</div>

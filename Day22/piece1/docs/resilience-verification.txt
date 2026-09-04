@@ -1,0 +1,205 @@
+=== Building ===
+  built.
+  API up on http://localhost:5311 (pid 1366)
+
+--- Pipeline configuration in force
+      {
+        "circuitState": "Closed",
+        "closed": true,
+        "configuration": {
+          "failureRatio": 0.5,
+          "minimumThroughput": 8,
+          "samplingDurationSeconds": 30,
+          "breakDurationSeconds": 5,
+          "maxRetryAttempts": 3,
+          "attemptTimeoutSeconds": 1,
+          "totalTimeoutSeconds": 10,
+          "bulkheadConcurrency": 2,
+          "bulkheadQueue": 1
+        }
+      }
+
+
+================================================================
+ 1. Healthy baseline
+================================================================
+  GET /api/resilience/call -> HTTP 200
+      {
+        "ok": true,
+        "outcome": "Succeeded",
+        "status": 200,
+        "elapsedMs": 205.7,
+        "detail": "ok"
+      }
+  [PASS] healthy dependency answers 200 through the pipeline
+  [PASS] circuit is Closed
+
+
+================================================================
+ 2. Retry is idempotent-only
+================================================================
+
+--- GET (idempotent) against a failing dependency
+  retries: 3
+  [PASS] GET retried 3 times (1 attempt + 3 retries)
+
+--- POST (not idempotent) against the same failing dependency
+  retries: 0
+  [PASS] POST was not retried - one attempt, no duplicate side effects
+
+--- What the pipeline logged during the GET
+      {
+        "count": 3,
+        "events": [
+          {
+            "at": "05:59:46.708",
+            "strategy": "retry",
+            "event": "attempt",
+            "detail": "#1 after 99ms (HTTP 500)"
+          },
+          {
+            "at": "05:59:46.813",
+            "strategy": "retry",
+            "event": "attempt",
+            "detail": "#2 after 67ms (HTTP 500)"
+          },
+          {
+            "at": "05:59:46.890",
+            "strategy": "retry",
+            "event": "attempt",
+            "detail": "#3 after 140ms (HTTP 500)"
+          }
+        ]
+      }
+
+
+================================================================
+ 3. Sustained failure opens the circuit
+================================================================
+  circuit before: Closed
+
+--- Driving 12 non-idempotent calls at the broken dependency
+  call 1  -> HTTP 500  outcome=UpstreamFailed   elapsed=1.8ms  circuit=Closed
+  call 2  -> HTTP 500  outcome=UpstreamFailed   elapsed=2.6ms  circuit=Closed
+  call 3  -> HTTP 500  outcome=UpstreamFailed   elapsed=1.9ms  circuit=Closed
+  call 4  -> HTTP 500  outcome=UpstreamFailed   elapsed=1.7ms  circuit=Closed
+  call 5  -> HTTP 500  outcome=UpstreamFailed   elapsed=1.6ms  circuit=Closed
+  call 6  -> HTTP 500  outcome=UpstreamFailed   elapsed=1.8ms  circuit=Closed
+  call 7  -> HTTP 500  outcome=UpstreamFailed   elapsed=1.3ms  circuit=Closed
+  call 8  -> HTTP 500  outcome=UpstreamFailed   elapsed=12.1ms  circuit=Open
+  call 9  -> HTTP 503  outcome=CircuitOpen      elapsed=2.9ms  circuit=Open
+  call 10 -> HTTP 503  outcome=CircuitOpen      elapsed=0.5ms  circuit=Open
+  call 11 -> HTTP 503  outcome=CircuitOpen      elapsed=0.4ms  circuit=Open
+  call 12 -> HTTP 503  outcome=CircuitOpen      elapsed=0.4ms  circuit=Open
+  [PASS] circuit opened under sustained failure
+
+--- Breaker state transitions so far
+      05:59:56.430  OPENED       breakDuration=5s trigger=HTTP 500
+      05:59:57.372  REJECTED     call short-circuited while open
+      05:59:58.276  REJECTED     call short-circuited while open
+      05:59:59.192  REJECTED     call short-circuited while open
+      06:00:00.150  REJECTED     call short-circuited while open
+
+
+================================================================
+ 4. An open circuit rejects without touching the network
+================================================================
+
+--- Re-opening the circuit, then firing 10 calls inside the break window
+  circuit: Open
+  breakerRejections: 14
+  upstreamFailures:  8 -> 8
+  sample outcome:    CircuitOpen, 0.4ms
+  [PASS] not one of those calls reached the dependency
+  [PASS] 14 calls rejected by the breaker, in microseconds each
+
+
+================================================================
+ 5. Recovery: OPEN -> HALF-OPEN -> CLOSED
+================================================================
+
+--- Re-opening the circuit so the break duration starts now
+  circuit: Open
+
+--- Dependency is repaired, but the breaker does not know yet
+  immediate call: outcome=CircuitOpen  circuit=Open
+  [PASS] still rejected - recovery is time-based, not health-based
+
+--- Waiting out the 5s break duration
+
+--- One trial call
+  HTTP 200  outcome=Succeeded  circuit=Closed
+  [PASS] trial call succeeded and the circuit closed - no operator involved
+
+--- Full transition sequence
+      06:00:09.996  OPENED       breakDuration=5s trigger=HTTP 500
+      06:00:10.180  REJECTED     call short-circuited while open
+      06:00:10.360  REJECTED     call short-circuited while open
+      06:00:10.611  REJECTED     call short-circuited while open
+      06:00:10.784  REJECTED     call short-circuited while open
+      06:00:11.473  REJECTED     call short-circuited while open
+      06:00:18.460  HALF-OPENED  break elapsed; admitting one trial call
+      06:00:18.466  CLOSED       trial call succeeded; traffic restored
+  last three transitions: opened -> half-opened -> closed
+  [PASS] open -> half-open -> closed: the dependency recovered and traffic was restored
+
+
+================================================================
+ 6. A failed trial call re-opens the circuit
+================================================================
+  circuit: Open
+
+--- Waiting out the break with the dependency STILL broken
+  trial call: outcome=UpstreamFailed  circuit=Open
+  [PASS] probe failed, circuit re-opened for another full break duration
+
+--- Transitions
+      06:00:22.199  OPENED       breakDuration=5s trigger=HTTP 500
+      06:00:22.367  REJECTED     call short-circuited while open
+      06:00:22.548  REJECTED     call short-circuited while open
+      06:00:22.731  REJECTED     call short-circuited while open
+      06:00:22.905  REJECTED     call short-circuited while open
+      06:00:29.511  HALF-OPENED  break elapsed; admitting one trial call
+      06:00:29.513  OPENED       breakDuration=5s trigger=HTTP 500
+
+
+================================================================
+ 7. Timeout bounds a slow dependency
+================================================================
+
+--- POST (no retries) against a dependency that has stopped answering
+  HTTP 504  outcome=TimedOut  elapsed=1068.6ms
+  [PASS] call was cut off rather than waiting on a dead dependency
+  [PASS] bounded at the 1s attempt timeout, not the 3s the dependency wanted (1068.6ms)
+
+
+================================================================
+ 8. Bulkhead sheds load once permits and queue are full
+================================================================
+
+--- 12 concurrent calls against a bulkhead of 2 permits + 1 queue slot
+  admitted: 3    shed: 9
+  bulkheadRejections counter: 9
+  sample rejection: bulkhead is full; shed to protect the rest of the process (13.8ms)
+  [PASS] 9 callers were shed fast instead of all 12 queueing behind a slow dependency
+  [PASS] at most permits+queue (3) were admitted at once
+  [PASS] bulkhead rejections never reached the breaker - shedding is not a dependency failure
+
+
+================================================================
+ Summary
+================================================================
+      {
+        "circuitState": "Closed",
+        "upstreamMode": "None",
+        "calls": 12,
+        "upstreamFailures": 0,
+        "retries": 0,
+        "timeouts": 0,
+        "breakerRejections": 0,
+        "bulkheadRejections": 9,
+        "note": "breakerRejections never reached the network. They are the cost the breaker removed, not failures it caused."
+      }
+
+  16 passed, 0 failed
+

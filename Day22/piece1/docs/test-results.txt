@@ -1,0 +1,16 @@
+tests/QuotesApi.Jobs.Tests
+  Passed!  - Failed:     0, Passed:     8, Skipped:     0, Total:     8, Duration: 1 s - QuotesApi.Jobs.Tests.dll (net10.0)
+tests/QuotesApi.Messaging.Tests
+  Passed!  - Failed:     0, Passed:     7, Skipped:     0, Total:     7, Duration: 206 ms - QuotesApi.Messaging.Tests.dll (net10.0)
+tests/QuotesApi.Outbox.Tests
+  Passed!  - Failed:     0, Passed:     8, Skipped:     0, Total:     8, Duration: 6 s - QuotesApi.Outbox.Tests.dll (net10.0)
+tests/QuotesApi.Resilience.Tests
+  Passed!  - Failed:     0, Passed:    40, Skipped:     0, Total:    40, Duration: 3 s - QuotesApi.Resilience.Tests.dll (net10.0)
+
+frontend (Angular)
+   Test Files  12 passed (12)
+        Tests  147 passed (147)
+
+frontend production build
+  Application bundle generation complete. [9.067 seconds] - 2026-09-04T06:12:34.177Z
+  Output location: D:\ThinkBridge\Day22\piece1\frontend\dist\quotes-web

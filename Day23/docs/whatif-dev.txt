@@ -1,0 +1,270 @@
+$ export SQL_ADMIN_OBJECT_ID=<entra-group-object-id>
+$ export CONTAINER_APP_ENV_ID=<existing container apps environment id>
+$ az deployment group what-if --resource-group rg-dispatch-dev \
+      --template-file main.bicep --parameters main.dev.bicepparam
+
+Note: The result may contain false positive predictions (noise).
+You can help us improve the accuracy of the result by opening an issue here: https://aka.ms/WhatIfIssues
+
+Resource and property changes are indicated with these symbols:
+  + Create
+  x Unsupported
+
+The deployment will update the following scopes:
+
+Scope: /
+
+
+
+
+Scope: /subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev
+
+  + Microsoft.App/containerApps/ca-dispatch-api-dev [2024-03-01]
+
+      apiVersion:                                     "2024-03-01"
+      id:                                             "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.App/containerApps/ca-dispatch-api-dev"
+      identity.type:                                  "SystemAssigned"
+      location:                                       "centralindia"
+      name:                                           "ca-dispatch-api-dev"
+      properties.configuration.activeRevisionsMode:   "Single"
+      properties.configuration.ingress.allowInsecure: false
+      properties.configuration.ingress.external:      true
+      properties.configuration.ingress.targetPort:    8080
+      properties.configuration.ingress.traffic: [
+        0:
+
+          latestRevision: true
+          weight:         100
+
+      ]
+      properties.configuration.ingress.transport:     "auto"
+      properties.managedEnvironmentId:                "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/thinkschool-rg/providers/Microsoft.App/managedEnvironments/thinkschool-env"
+      properties.template.containers: [
+        0:
+
+          env: [
+            0:
+
+              name:  "ConnectionStrings__Dispatch"
+              value: "Server=tcp:sql-dispatch-dev-zgdsji.database.windows.net,1433;Initial Catalog=dispatch;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default"
+
+            1:
+
+              name:  "ServiceBus__FullyQualifiedNamespace"
+              value: "sb-dispatch-dev-zgdsji.servicebus.windows.net"
+
+            2:
+
+              name:  "ServiceBus__TopicName"
+              value: "work-order-events"
+
+            3:
+
+              name:  "APPLICATIONINSIGHTS_CONNECTION_STRING"
+              value: "[reference('/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.Insights/components/appi-dispatch-dev-zgdsji', '2020-02-02').ConnectionString]"
+
+            4:
+
+              name:  "ASPNETCORE_ENVIRONMENT"
+              value: "Development"
+
+          ]
+          image:            "mcr.microsoft.com/k8se/quickstart:latest"
+          name:             "dispatch-api"
+          probes: [
+            0:
+
+              failureThreshold:    3
+              httpGet.path:        "/health"
+              httpGet.port:        8080
+              initialDelaySeconds: 10
+              periodSeconds:       30
+              type:                "Liveness"
+
+          ]
+          resources.cpu:    0.25
+          resources.memory: "0.5Gi"
+
+      ]
+      properties.template.scale.maxReplicas:          2
+      properties.template.scale.minReplicas:          0
+      properties.template.scale.rules: [
+        0:
+
+          http.metadata.concurrentRequests: "50"
+          name:                             "http-concurrency"
+
+      ]
+      tags.application:                               "dispatch"
+      tags.environment:                               "dev"
+      tags.managedBy:                                 "bicep"
+      tags.source:                                    "Day23/infra/main.bicep"
+      type:                                           "Microsoft.App/containerApps"
+
+  + Microsoft.Insights/components/appi-dispatch-dev-zgdsji [2020-02-02]
+
+      apiVersion:                                 "2020-02-02"
+      id:                                         "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.Insights/components/appi-dispatch-dev-zgdsji"
+      kind:                                       "web"
+      location:                                   "centralindia"
+      name:                                       "appi-dispatch-dev-zgdsji"
+      properties.Application_Type:                "web"
+      properties.IngestionMode:                   "LogAnalytics"
+      properties.publicNetworkAccessForIngestion: "Enabled"
+      properties.publicNetworkAccessForQuery:     "Enabled"
+      properties.WorkspaceResourceId:             "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.OperationalInsights/workspaces/log-dispatch-dev-zgdsji"
+      tags.application:                           "dispatch"
+      tags.environment:                           "dev"
+      tags.managedBy:                             "bicep"
+      tags.source:                                "Day23/infra/main.bicep"
+      type:                                       "Microsoft.Insights/components"
+
+  + Microsoft.OperationalInsights/workspaces/log-dispatch-dev-zgdsji [2023-09-01]
+
+      apiVersion:                                 "2023-09-01"
+      id:                                         "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.OperationalInsights/workspaces/log-dispatch-dev-zgdsji"
+      location:                                   "centralindia"
+      name:                                       "log-dispatch-dev-zgdsji"
+      properties.publicNetworkAccessForIngestion: "Enabled"
+      properties.publicNetworkAccessForQuery:     "Enabled"
+      properties.retentionInDays:                 30
+      properties.sku.name:                        "PerGB2018"
+      properties.workspaceCapping.dailyQuotaGb:   1
+      tags.application:                           "dispatch"
+      tags.environment:                           "dev"
+      tags.managedBy:                             "bicep"
+      tags.source:                                "Day23/infra/main.bicep"
+      type:                                       "Microsoft.OperationalInsights/workspaces"
+
+  + Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji [2022-10-01-preview]
+
+      apiVersion:                     "2022-10-01-preview"
+      id:                             "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji"
+      location:                       "centralindia"
+      name:                           "sb-dispatch-dev-zgdsji"
+      properties.disableLocalAuth:    true
+      properties.minimumTlsVersion:   "1.2"
+      properties.publicNetworkAccess: "Enabled"
+      properties.zoneRedundant:       false
+      sku.name:                       "Standard"
+      tags.application:               "dispatch"
+      tags.environment:               "dev"
+      tags.managedBy:                 "bicep"
+      tags.source:                    "Day23/infra/main.bicep"
+      type:                           "Microsoft.ServiceBus/namespaces"
+
+  + Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events [2022-10-01-preview]
+
+      apiVersion:                            "2022-10-01-preview"
+      id:                                    "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events"
+      name:                                  "work-order-events"
+      properties.defaultMessageTimeToLive:   "P1D"
+      properties.enablePartitioning:         true
+      properties.requiresDuplicateDetection: false
+      properties.supportOrdering:            false
+      type:                                  "Microsoft.ServiceBus/namespaces/topics"
+
+  + Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/billing [2022-10-01-preview]
+
+      apiVersion:                                           "2022-10-01-preview"
+      id:                                                   "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/billing"
+      name:                                                 "billing"
+      properties.deadLetteringOnFilterEvaluationExceptions: true
+      properties.deadLetteringOnMessageExpiration:          true
+      properties.defaultMessageTimeToLive:                  "P1D"
+      properties.lockDuration:                              "PT1M"
+      properties.maxDeliveryCount:                          3
+      type:                                                 "Microsoft.ServiceBus/namespaces/topics/subscriptions"
+
+  + Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/billing/rules/only-relevant-events [2022-10-01-preview]
+
+      apiVersion:                         "2022-10-01-preview"
+      id:                                 "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/billing/rules/only-relevant-events"
+      name:                               "only-relevant-events"
+      properties.filterType:              "SqlFilter"
+      properties.sqlFilter.sqlExpression: "eventType IN ('WorkOrderCompletedV1')"
+      type:                               "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules"
+
+  + Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/scheduling [2022-10-01-preview]
+
+      apiVersion:                                           "2022-10-01-preview"
+      id:                                                   "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/scheduling"
+      name:                                                 "scheduling"
+      properties.deadLetteringOnFilterEvaluationExceptions: true
+      properties.deadLetteringOnMessageExpiration:          true
+      properties.defaultMessageTimeToLive:                  "P1D"
+      properties.lockDuration:                              "PT1M"
+      properties.maxDeliveryCount:                          3
+      type:                                                 "Microsoft.ServiceBus/namespaces/topics/subscriptions"
+
+  + Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/scheduling/rules/only-relevant-events [2022-10-01-preview]
+
+      apiVersion:                         "2022-10-01-preview"
+      id:                                 "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/scheduling/rules/only-relevant-events"
+      name:                               "only-relevant-events"
+      properties.filterType:              "SqlFilter"
+      properties.sqlFilter.sqlExpression: "eventType IN ('WorkOrderScheduledV1', 'WorkOrderReleasedV1')"
+      type:                               "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules"
+
+  + Microsoft.Sql/servers/sql-dispatch-dev-zgdsji [2023-08-01-preview]
+
+      apiVersion:                                          "2023-08-01-preview"
+      id:                                                  "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.Sql/servers/sql-dispatch-dev-zgdsji"
+      location:                                            "centralindia"
+      name:                                                "sql-dispatch-dev-zgdsji"
+      properties.administrators.administratorType:         "ActiveDirectory"
+      properties.administrators.azureADOnlyAuthentication: true
+      properties.administrators.login:                     "*******"
+      properties.administrators.principalType:             "Group"
+      properties.administrators.sid:                       "93ec056f-cf05-416b-80b0-d24e36c1ba46"
+      properties.administrators.tenantId:                  "8d46a076-d093-416d-a57b-8692cde13bf8"
+      properties.minimalTlsVersion:                        "1.2"
+      properties.publicNetworkAccess:                      "Enabled"
+      properties.restrictOutboundNetworkAccess:            "Disabled"
+      tags.application:                                    "dispatch"
+      tags.environment:                                    "dev"
+      tags.managedBy:                                      "bicep"
+      tags.source:                                         "Day23/infra/main.bicep"
+      type:                                                "Microsoft.Sql/servers"
+
+  + Microsoft.Sql/servers/sql-dispatch-dev-zgdsji/databases/dispatch [2023-08-01-preview]
+
+      apiVersion:                                  "2023-08-01-preview"
+      id:                                          "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.Sql/servers/sql-dispatch-dev-zgdsji/databases/dispatch"
+      location:                                    "centralindia"
+      name:                                        "dispatch"
+      properties.autoPauseDelay:                   60
+      properties.collation:                        "SQL_Latin1_General_CP1_CI_AS"
+      properties.requestedBackupStorageRedundancy: "Local"
+      properties.zoneRedundant:                    false
+      sku.family:                                  "Gen5"
+      sku.name:                                    "GP_S_Gen5_1"
+      tags.application:                            "dispatch"
+      tags.environment:                            "dev"
+      tags.managedBy:                              "bicep"
+      tags.source:                                 "Day23/infra/main.bicep"
+      type:                                        "Microsoft.Sql/servers/databases"
+
+  + Microsoft.Sql/servers/sql-dispatch-dev-zgdsji/databases/dispatch/backupShortTermRetentionPolicies/default [2023-08-01-preview]
+
+      apiVersion:               "2023-08-01-preview"
+      id:                       "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.Sql/servers/sql-dispatch-dev-zgdsji/databases/dispatch/backupShortTermRetentionPolicies/default"
+      name:                     "default"
+      properties.retentionDays: 7
+      type:                     "Microsoft.Sql/servers/databases/backupShortTermRetentionPolicies"
+
+  + Microsoft.Sql/servers/sql-dispatch-dev-zgdsji/firewallRules/AllowAllWindowsAzureIps [2023-08-01-preview]
+
+      apiVersion:                "2023-08-01-preview"
+      id:                        "/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.Sql/servers/sql-dispatch-dev-zgdsji/firewallRules/AllowAllWindowsAzureIps"
+      name:                      "AllowAllWindowsAzureIps"
+      properties.endIpAddress:   "0.0.0.0"
+      properties.startIpAddress: "0.0.0.0"
+      type:                      "Microsoft.Sql/servers/firewallRules"
+
+Resource changes: 13 to create, 2 unsupported.
+
+Diagnostics (2): 
+[extensionResourceId('/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji', 'Microsoft.Authorization/roleAssignments', guid('/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji', reference('/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.App/containerApps/ca-dispatch-api-dev', '2024-03-01', 'full').identity.principalId, '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'))] (Unsupported) Changes to the resource declared at 'properties.template.resources[4].properties.template.resources[0]' on line 1 and column 25515 cannot be analyzed because its resource ID or API version cannot be calculated until the deployment is under way. Please see https://aka.ms/WhatIfUnidentifiableResource for more guidance.
+[extensionResourceId('/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji', 'Microsoft.Authorization/roleAssignments', guid('/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji', reference('/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev/providers/Microsoft.App/containerApps/ca-dispatch-api-dev', '2024-03-01', 'full').identity.principalId, '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'))] (Unsupported) Changes to the resource declared at 'properties.template.resources[4].properties.template.resources[1]' on line 1 and column 26083 cannot be analyzed because its resource ID or API version cannot be calculated until the deployment is under way. Please see https://aka.ms/WhatIfUnidentifiableResource for more guidance.
+

@@ -1,0 +1,7 @@
+# Compiled ARM output. Regenerated from the .bicep sources by `az bicep build`; committing it
+# creates a second source of truth that silently goes stale.
+*.json
+!docs/*.json
+
+# Deployment outputs written by scripts/deploy.sh — machine-generated per environment.
+docs/deploy-*.json

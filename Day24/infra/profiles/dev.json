@@ -1,0 +1,67 @@
+{
+  "_comment": [
+    "DEV sizing for Dispatch. Cheap, disposable, and honest about being neither durable nor fast.",
+    "",
+    "This was main.dev.bicepparam on Day 23. It is JSON now for one reason: azd drives a single",
+    "parameter file, so the per-environment values had to move somewhere the parameter file can",
+    "select at compile time. loadJsonContent() does that; two competing .bicepparam files cannot.",
+    "",
+    "The trade is real and worth naming. A .bicepparam is type-checked against main.bicep, so a",
+    "misspelled key is a compile error. These files are not - a typo here becomes a missing key at",
+    "compile time only if main.bicepparam references it, which it does for every key below. That",
+    "is the safety net, and it only holds because nothing reads these files dynamically."
+  ],
+
+  "sqlAdminLogin": "sql-dispatch-admins",
+
+  "_sql": [
+    "SERVERLESS, so an environment nobody is using stops billing for compute. GP_S_Gen5_1",
+    "auto-pauses after an hour idle. The cost is a several-second cold start on the first query",
+    "after a pause - exactly the right trade for dev and exactly the wrong one for prod.",
+    "",
+    "7 days is the Azure minimum that still lets you recover from 'I ran the wrong migration on",
+    "Friday' on Monday morning. No zone redundancy: it roughly doubles the cost to survive a",
+    "datacentre failure in an environment whose data is disposable by definition."
+  ],
+  "databaseSku": {
+    "name": "GP_S_Gen5_1",
+    "tier": "GeneralPurpose",
+    "family": "Gen5",
+    "capacity": 1
+  },
+  "backupRetentionDays": 7,
+  "sqlZoneRedundant": false,
+
+  "_serviceBus": [
+    "Standard is the MINIMUM tier that supports topics at all. Basic is cheaper and gives queues",
+    "only, which cannot express the fan-out Dispatch's design depends on. This is the one place",
+    "dev cannot economise without changing the architecture being tested.",
+    "",
+    "maxDeliveryCount 3 is deliberately low: a poison message should reach the DLQ quickly so it",
+    "can be looked at, rather than being retried ten times while somebody waits. P1D is long",
+    "enough to debug over a lunch break, short enough that a forgotten test message does not sit",
+    "in the topic for a fortnight."
+  ],
+  "serviceBusSku": "Standard",
+  "serviceBusCapacity": 1,
+  "maxDeliveryCount": 3,
+  "messageTimeToLive": "P1D",
+
+  "_api": [
+    "The smallest supported container, allowed to scale to zero. minReplicas 0 is the single",
+    "largest cost saving in this file: an idle dev environment runs no containers and bills no",
+    "compute. The cost is a cold start on the first request, acceptable everywhere except prod."
+  ],
+  "containerCpu": "0.25",
+  "containerMemory": "0.5Gi",
+  "minReplicas": 0,
+  "maxReplicas": 2,
+
+  "_observability": [
+    "30 days is the Log Analytics floor. The 1 GB/day cap matters more than the retention: a",
+    "logging bug in dev can emit gigabytes in an hour, and the cap turns that into 'ingestion",
+    "stopped' rather than a surprise invoice."
+  ],
+  "logRetentionDays": 30,
+  "logDailyQuotaGb": 1
+}

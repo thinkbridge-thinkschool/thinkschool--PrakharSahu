@@ -1,0 +1,29 @@
+
+Provisioning Azure resources (azd provision)
+Provisioning Azure resources can take some time.
+
+Initialize bicep provider
+Reading subscription and location from environment...
+Subscription: Azure for Students (132ef106-f8ec-4352-83e4-9bc238274f25)
+Location: Central India
+
+
+  WARNING: Feature 'deployment.stacks' is in alpha stage.
+  To learn more about alpha features and their support, visit https://aka.ms/azd-feature-stages.
+
+Creating a deployment plan
+Validating deployment
+Creating/Updating resources
+  You can view detailed progress in the Azure Portal:
+  https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id/%2Fsubscriptions%2F132ef106-f8ec-4352-83e4-9bc238274f25%2Fproviders%2FMicrosoft.Resources%2Fdeployments%2Fazd-stack-prod-26090806fyton
+
+  (✓) Done: Resource group: rg-dispatch-prod (1.57s)
+  (✓) Done: Service Bus Namespace: sb-dispatch-prod-r34qlw (701ms)
+  (✓) Done: Azure SQL Server: sql-dispatch-prod-r34qlw (6.879s)
+  (✓) Done: Application Insights: appi-dispatch-prod-r34qlw (23.715s)
+  (✓) Done: Log Analytics workspace: log-dispatch-prod-r34qlw (22.808s)
+  (✓) Done: Container App: ca-dispatch-api-prod (16.07s)
+
+SUCCESS: Your application was provisioned in Azure in 3 minutes 24 seconds.
+You can view the resources created under the resource group rg-dispatch-prod in Azure Portal:
+https://portal.azure.com/#@/resource/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-prod/overview

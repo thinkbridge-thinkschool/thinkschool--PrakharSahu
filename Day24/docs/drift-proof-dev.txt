@@ -1,0 +1,60 @@
+==============================================================================
+ Deployment stack drift proof — dev
+==============================================================================
+
+--- 1. The stack knows exactly what it owns -----------------------------------
+  denyMode: denyDelete
+  managed: 16
+  onUnmanageResourceGroups: delete
+  onUnmanageResources: delete
+  state: succeeded
+
+  managed resources:
+    /subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-dev
+    Microsoft.App/containerApps/ca-dispatch-api-dev
+    Microsoft.Authorization/roleAssignments/08fe236e-99cf-569f-9d25-32f99e91297f
+    Microsoft.Authorization/roleAssignments/1181952f-5ddc-5e14-a6ab-283a3cc8e0d6
+    Microsoft.Insights/components/appi-dispatch-dev-zgdsji
+    Microsoft.OperationalInsights/workspaces/log-dispatch-dev-zgdsji
+    Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji
+    Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events
+    Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/billing
+    Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/billing/rules/only-relevant-events
+    Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/scheduling
+    Microsoft.ServiceBus/namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events/subscriptions/scheduling/rules/only-relevant-events
+    Microsoft.Sql/servers/sql-dispatch-dev-zgdsji
+    Microsoft.Sql/servers/sql-dispatch-dev-zgdsji/databases/dispatch
+    Microsoft.Sql/servers/sql-dispatch-dev-zgdsji/databases/dispatch/backupShortTermRetentionPolicies/default
+    Microsoft.Sql/servers/sql-dispatch-dev-zgdsji/firewallRules/AllowAzureServices
+  PASS  the inventory is server-side and enumerable (16 resources)
+
+--- 2. Deleting a managed resource out of band is REFUSED ----------------------
+  attempting: az servicebus topic delete --name work-order-events
+    ERROR: (DenyAssignmentAuthorizationFailed) The client '<user>' with object id 
+    '<guid>' has permission to perform action 
+    'Microsoft.ServiceBus/namespaces/topics/delete' on scope 
+    '/subscriptions/<guid>/resourceGroups/rg-dispatch-dev/providers/Microsoft.ServiceBus
+    /namespaces/sb-dispatch-dev-zgdsji/topics/work-order-events'; however, the access 
+    is denied because of the deny assignment with name 'Deny assignment '<guid>' 
+  PASS  ARM refused the delete, citing the deny assignment created by the stack
+  PASS  the topic still exists
+
+--- 3. Configuration drift is reverted by the next provision -------------------
+  tag managedBy before drift    : bicep
+  tag managedBy after  drift    : someone-in-the-portal
+  PASS  an out-of-band WRITE succeeded, as denyDelete intends
+  re-running: azd provision --no-prompt
+  tag managedBy after  provision: bicep
+  PASS  the stack restored the declared value; drift is gone
+
+--- 4. Teardown scope: what actionOnUnmanage=delete would remove ---------------
+  the resource group itself, and all 16 resources listed in section 1.
+  Nothing else in the subscription is in this inventory, so nothing else is at risk.
+
+  Contrast with Day 23, which used plain deployments: rg-dispatch-dev and
+  rg-dispatch-prod were created by 'az group create' inside a script, owned by no
+  template, and outlived every deployment that used them.
+
+==============================================================================
+ 5 passed, 0 failed
+==============================================================================

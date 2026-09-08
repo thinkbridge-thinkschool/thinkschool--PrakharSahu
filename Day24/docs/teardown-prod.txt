@@ -1,0 +1,56 @@
+=== BEFORE teardown ===
+resource groups matching rg-dispatch-*:
+  rg-dispatch-dev
+  rg-dispatch-prod
+resources in rg-dispatch-prod: 7
+stacks: azd-stack-dev
+ azd-stack-prod
+ 
+
+=== azd down --force --purge (prod) ===
+
+Deleting all resources and deployed code on Azure (azd down)
+Local application code is not deleted when running 'azd down'.
+
+
+WARNING: Feature 'deployment.stacks' is in alpha stage.
+To learn more about alpha features and their support, visit https://aka.ms/azd-feature-stages.
+
+Discovering resources to delete...
+Deleting your resources can take some time.
+
+Purging Log Analytics Workspace: log-dispatch-prod-r34qlw
+  (x) Failed: Purging Log Analytics Workspace: log-dispatch-prod-r34qlw
+
+ERROR: deleting infrastructure: error deleting Azure resources: force deleting log analytics workspaces: purging log analytics workspace log-dispatch-prod-r34qlw: starting purging log analytics workspace: DELETE https://management.azure.com/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourcegroups/rg-dispatch-prod/providers/Microsoft.OperationalInsights/workspaces/log-dispatch-prod-r34qlw
+--------------------------------------------------------------------------------
+RESPONSE 403: 403 Forbidden
+ERROR CODE: DenyAssignmentAuthorizationFailed
+--------------------------------------------------------------------------------
+{
+  "error": {
+    "code": "DenyAssignmentAuthorizationFailed",
+    "message": "The client '<signed-in-user>' with object id '<principal-object-id>' has permission to perform action 'Microsoft.OperationalInsights/workspaces/delete' on scope '/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourcegroups/rg-dispatch-prod/providers/Microsoft.OperationalInsights/workspaces/log-dispatch-prod-r34qlw'; however, the access is denied because of the deny assignment with name 'Deny assignment '8436008f-c0b1-5fb8-85f8-d8d584535b65' created by Deployment Stack '/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/providers/Microsoft.Resources/deploymentStacks/azd-stack-prod'.' and Id '8436008f-c0b1-5fb8-85f8-d8d584535b65' at scope '/subscriptions/132ef106-f8ec-4352-83e4-9bc238274f25/resourceGroups/rg-dispatch-prod/providers/Microsoft.OperationalInsights/workspaces/log-dispatch-prod-r34qlw'."
+  }
+}
+--------------------------------------------------------------------------------
+
+TraceID: e06064e979e0bf54a13a13490c453b15
+=== AFTER teardown ===
+resource groups matching rg-dispatch-*:
+  rg-dispatch-dev
+
+rg-dispatch-prod exists? false
+stacks remaining: azd-stack-dev
+ 
+
+any orphaned prod resources anywhere in the subscription?
+  none
+
+soft-deleted (recoverable) prod Log Analytics workspace?
+  log-dispatch-prod-r34qlw
+
+=== dev is untouched ===
+rg-dispatch-dev exists? true
+azd-stack-dev state  : succeeded
+azd-stack-dev manages: 16 resources

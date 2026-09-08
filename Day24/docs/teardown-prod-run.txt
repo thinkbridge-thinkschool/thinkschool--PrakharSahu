@@ -1,0 +1,16 @@
+
+Deleting all resources and deployed code on Azure (azd down)
+Local application code is not deleted when running 'azd down'.
+
+
+WARNING: Feature 'deployment.stacks' is in alpha stage.
+To learn more about alpha features and their support, visit https://aka.ms/azd-feature-stages.
+
+Discovering resources to delete...
+Deleting your resources can take some time.
+
+Deleting subscription deployment stack azd-stack-prod
+  (✓) Done: Deleted subscription deployment stack azd-stack-prod
+
+
+SUCCESS: Your application was removed from Azure in 8 minutes 46 seconds.

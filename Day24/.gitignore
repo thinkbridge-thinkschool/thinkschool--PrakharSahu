@@ -1,0 +1,15 @@
+# azd environment state.
+#
+# .azure/<env>/.env holds the values scripts/env-setup.sh resolves at setup time: the
+# subscription id, the SQL admin group's object id, and the resource id of the shared Container
+# Apps environment. None of those are secrets — they are public identifiers — but all of them
+# are specific to one directory and one subscription, so a committed copy is wrong for anyone
+# else who clones this.
+#
+# It also holds every template OUTPUT azd writes back after a provision, including the SQL
+# connection string. That one is safe to print (it ends `Authentication=Active Directory
+# Default`, so it names an auth method rather than carrying a credential) but it names live
+# infrastructure, and there is no reason for it to be in git.
+#
+# Recreate it with:  ./scripts/env-setup.sh dev
+.azure/

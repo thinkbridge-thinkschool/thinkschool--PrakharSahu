@@ -1,0 +1,24 @@
+=== prod stack ===
+denyMode: denyDelete
+managed: 16
+onUnmanageRG: delete
+onUnmanageResources: delete
+state: succeeded
+
+=== prod really is prod-grade (read back from Azure, not from the profile) ===
+  Service Bus SKU     : Premium
+  SQL SKU             : GP_Gen5
+  SQL capacity        : 2
+  SQL backup retention: 35 days
+WARNING: The behavior of this command has been altered by the following extension: containerapp
+  container minReplicas: 2
+WARNING: The behavior of this command has been altered by the following extension: containerapp
+  container CPU        : 1
+  log retention        : 90 days
+  msg TTL / maxDelivery: P14D / 10
+
+=== same for dev, side by side ===
+  dev Service Bus SKU  : Standard
+  dev SQL SKU          : GP_S_Gen5
+WARNING: The behavior of this command has been altered by the following extension: containerapp
+  dev minReplicas      : 0

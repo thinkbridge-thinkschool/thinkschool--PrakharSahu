@@ -1,0 +1,147 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+# =============================================================================================
+# Dispatch — azd project manifest.
+#
+# This file is the whole azd configuration. It replaces Day 23's two shell scripts, and the
+# interesting part is what it no longer has to say: no resource group name, no `az group create`,
+# no `--parameters main.dev.bicepparam`, no deployment name with a timestamp glued to it. azd
+# derives all of that from the selected environment.
+#
+#   azd env select dev  &&  azd provision      # deploys dev
+#   azd env select prod &&  azd provision      # deploys prod, same template, same command
+#
+# The promotion from dev to prod is a change of environment, not a change of command line. That
+# is the property being tested: if promoting needed different arguments, the two environments
+# were never really the same deployment.
+# =============================================================================================
+
+name: dispatch
+metadata:
+  template: dispatch-day24@1.0.0
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+  # -------------------------------------------------------------------------------------------
+  # DEPLOYMENT STACKS — the reason this day exists.
+  #
+  # Without this block azd issues an ordinary deployment: ARM applies the template, records the
+  # result in the deployment history, and forgets which resources it made. The template is the
+  # only record of what should exist, and nothing reconciles reality against it.
+  #
+  # With it, Azure keeps a STACK — a server-side, named inventory of the resources this template
+  # owns. That inventory is what makes the two properties below possible at all.
+  #
+  # Requires `azd config set alpha.deployment.stacks on`. Still alpha in azd 1.31.
+  # -------------------------------------------------------------------------------------------
+  deploymentStacks:
+
+    # -----------------------------------------------------------------------------------------
+    # CLEAN TEARDOWN.
+    #
+    # This is the answer to a question a plain deployment cannot answer: if a resource is removed
+    # from the template, or the whole stack is deleted, what happens to the real resource?
+    #
+    # `delete` means the stack owns the lifecycle. Take a resource out of the template and the
+    # next deployment removes it from Azure — no orphan, no manual cleanup, no drift accumulating
+    # in the shape of resources nobody remembers creating. `detach` would do the opposite: forget
+    # the resource while leaving it running and billing.
+    #
+    # `resourceGroups: delete` is the one that needs subscription scope to mean anything, and it
+    # is why main.bicep declares the resource group instead of a script creating it. Day 23 left
+    # two empty resource groups behind precisely because nothing owned them.
+    #
+    # `managementGroups: detach` because this stack creates none. Naming it anyway keeps the
+    # behaviour explicit rather than defaulted.
+    # -----------------------------------------------------------------------------------------
+    actionOnUnmanage:
+      resources: delete
+      resourceGroups: delete
+      managementGroups: detach
+
+    # -----------------------------------------------------------------------------------------
+    # DRIFT — PREVENTED, not merely reported.
+    #
+    # A deny assignment is placed by Azure Resource Manager on every resource in the stack. It
+    # applies to everyone, including the subscription owner, and it is enforced at the control
+    # plane — so it holds against the portal, the CLI, a Terraform run and a 3am incident alike.
+    # It is not a policy that reports a violation after the fact; the request fails.
+    #
+    # `denyDelete` and not `denyWriteAndDelete`, deliberately. Write-deny would also block the
+    # platform's own legitimate mutations — a Container Apps revision, a scale event, the
+    # certificate rotation on an ingress — and the application would degrade in ways that look
+    # like bugs. Delete is the irreversible operation, so delete is what gets denied.
+    #
+    # `applyToChildScopes: false` keeps the deny assignment on the stack's own resources rather
+    # than cascading to everything nested beneath them.
+    # -----------------------------------------------------------------------------------------
+    denySettings:
+      mode: denyDelete
+      applyToChildScopes: false
+
+      # Both EMPTY, and that is the correct configuration — not an unfinished one.
+      #
+      # A deny assignment does not lock the owner out of their own teardown, because `azd down`
+      # deletes nothing directly. It calls the stack API, which unmanages the stack: the deny
+      # assignment is removed first, then the resources go. Deletes that travel THROUGH the
+      # stack are permitted; deletes that go around it are what get denied.
+      #
+      # So an exclusion list is only needed for a principal that must bypass the stack — a
+      # backup agent, an autoscaler that deletes and recreates. Nothing here does, and adding a
+      # principal "just in case" is a hole in the only protection this block provides.
+      #
+      # ONE REAL CONSEQUENCE, found by tearing prod down rather than by reading the docs:
+      # `azd down --purge` FAILS against a stack. `--purge` permanently purges soft-deletable
+      # resources (Key Vaults, Log Analytics workspaces) and it does so with a DIRECT delete
+      # issued before the stack is unmanaged — which is precisely the path the deny assignment
+      # blocks:
+      #
+      #   RESPONSE 403: DenyAssignmentAuthorizationFailed
+      #   ... the access is denied because of the deny assignment ... created by Deployment
+      #   Stack '/subscriptions/<id>/providers/Microsoft.Resources/deploymentStacks/azd-stack-prod'
+      #
+      # The protection is working exactly as configured; the flag is what is incompatible. Use
+      # `azd down --force` and the teardown succeeds. The cost is that soft-deletable resources
+      # are left recoverable rather than purged — for this stack that is one Log Analytics
+      # workspace, which bills nothing while soft-deleted and ages out on its own.
+      excludedPrincipals: []
+      excludedActions: []
+
+# -----------------------------------------------------------------------------------------------
+# HOOKS — the steps a template cannot express.
+#
+# Day 23's main.bicep emitted the database GRANT as a template output and its deploy.sh printed
+# it for a human to run, because `CREATE USER ... FROM EXTERNAL PROVIDER` is T-SQL executed
+# inside the database and has no ARM resource. A printed instruction is a step that gets skipped.
+#
+# A postprovision hook is where that belongs: it reads the statement from the outputs azd has
+# just written, so nobody has to carry it in their head.
+#
+# -----------------------------------------------------------------------------------------------
+# MEASURED, NOT ASSUMED: THIS HOOK DOES NOT RUN ON `azd provision`
+#
+# The intent above is "it runs on every provision and cannot be forgotten". That is NOT what
+# happens with `alpha.deployment.stacks` enabled. Two clean `azd provision` runs against dev were
+# captured in full: both finished with SUCCESS and neither produced a line of hook output, while
+# the same hook runs correctly on demand:
+#
+#   azd provision --no-prompt      -> 0 lines of hook output
+#   azd hooks run postprovision    -> runs, reads the outputs, prints the pending GRANT
+#
+# So the automation this hook was written to provide is not currently in force, and the grant is
+# back to being a step someone has to remember — the exact failure this was meant to remove.
+# It is kept because it is correct and because `azd hooks run postprovision` is a real one-line
+# workaround, but calling it automatic would be a claim the evidence does not support.
+# -----------------------------------------------------------------------------------------------
+hooks:
+  postprovision:
+    shell: sh
+    run: ./scripts/postprovision.sh
+
+    # The grant needs a SQL client authenticated as the Entra admin. Not every machine has one,
+    # and a missing sqlcmd must not fail a deployment that otherwise succeeded — so the hook
+    # reports what remains instead of pretending it ran. See scripts/postprovision.sh.
+    continueOnError: true
+    interactive: false

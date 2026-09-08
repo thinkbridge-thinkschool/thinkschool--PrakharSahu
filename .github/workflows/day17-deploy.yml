@@ -38,13 +38,36 @@ jobs:
     environment: day17
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: Day17/frontend/package-lock.json
+
+      # An unset `vars.*` reference is substituted as an EMPTY STRING rather than failing, so
+      # azure/login then reports "Not all values are present. Ensure 'client-id' and 'tenant-id'
+      # are supplied" — an error that describes the action's inputs and says nothing about the
+      # repository configuration that actually caused it. This run failed exactly that way on
+      # 2026-08-29 before the variables existed, and the message sent the investigation to the
+      # wrong place. Checking here turns it into one sentence naming what to set and where.
+      #
+      # VARIABLES, not secrets: `vars.X` and `secrets.X` are different namespaces, and setting
+      # these as secrets leaves vars.* empty and reproduces the same failure.
+      - name: Verify the OIDC variables are set
+        run: |
+          missing=()
+          [ -n "${{ vars.AZURE_CLIENT_ID }}" ]       || missing+=("AZURE_CLIENT_ID")
+          [ -n "${{ vars.AZURE_TENANT_ID }}" ]       || missing+=("AZURE_TENANT_ID")
+          [ -n "${{ vars.AZURE_SUBSCRIPTION_ID }}" ] || missing+=("AZURE_SUBSCRIPTION_ID")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repository VARIABLES: ${missing[*]}"
+            echo "Set them under Settings > Secrets and variables > Actions > Variables tab."
+            echo "They are public identifiers, not secrets - do not add them as secrets."
+            exit 1
+          fi
+          echo "All three OIDC variables are present."
 
       - name: Sign in to Azure with OIDC (no client secret)
         uses: azure/login@v2

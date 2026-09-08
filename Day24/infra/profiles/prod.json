@@ -1,0 +1,107 @@
+{
+  "_comment": [
+    "PROD sizing for Dispatch. Durable, always-warm, and expensive in the places where being",
+    "cheap costs more than the saving.",
+    "",
+    "Same template, same modules, same resource shapes. Every difference from dev is in this",
+    "file, which is the property the whole exercise tests: if prod needed a different main.bicep,",
+    "then dev was never a rehearsal for anything.",
+    "",
+    "SAME REGION as dev, and it should not be. Prod belongs in its own region - sharing one means",
+    "a regional outage takes dev and prod together, so the environment meant to rehearse a",
+    "recovery is gone at exactly the moment it is needed. It is here anyway because this",
+    "subscription permits ONE Container Apps environment in total, not one per region."
+  ],
+
+  "sqlAdminLogin": "sql-dispatch-admins-prod",
+
+  "_sql": [
+    "PROVISIONED, not serverless, and General Purpose rather than Day 23's S1.",
+    "",
+    "Day 23 asked for S1 with zoneRedundant: true and what-if accepted it. That combination",
+    "cannot deploy: zone redundancy is unsupported on the DTU-based Standard tier, and what-if",
+    "validates template SHAPE, not whether a SKU supports the features requested alongside it.",
+    "The template was provably plannable and would still have failed on contact with ARM. It is",
+    "the clearest thing preparing an actual deployment surfaced.",
+    "",
+    "GP_Gen5_2 is the smallest vCore SKU that supports zone redundancy. It is modest and",
+    "deliberately so: the right SKU is unknowable until real traffic exists. What matters is that",
+    "changing it is a one-line edit to this file rather than a redesign.",
+    "",
+    "35 days is the Azure maximum for short-term retention. Point-in-time restore across five",
+    "weeks covers 'the corruption started before anyone noticed', which is the case that actually",
+    "needs backups."
+  ],
+  "databaseSku": {
+    "name": "GP_Gen5_2",
+    "tier": "GeneralPurpose",
+    "family": "Gen5",
+    "capacity": 2
+  },
+  "backupRetentionDays": 35,
+
+  "_zoneRedundancy": [
+    "FALSE, and it should be TRUE. This is a subscription limitation, not a design decision, and",
+    "it is the second one this capstone has hit - Day 23 recorded the same shape of problem with",
+    "the one-Container-Apps-environment-per-subscription cap.",
+    "",
+    "The first prod deployment asked for zoneRedundant: true on GP_Gen5_2 and ARM refused:",
+    "",
+    "  ProvisioningDisabled: Provisioning of zone redundant database/pool is not supported",
+    "  for your current request.",
+    "",
+    "That message names neither the region nor the SKU, so both were checked directly rather",
+    "than guessed at. Both support it:",
+    "",
+    "  az account list-locations  -> centralindia reports availability zones 1, 2, 3",
+    "  az sql db list-editions    -> GP_Gen5_2 reports zoneRedundant=True, status=Default",
+    "",
+    "So the template is correct and the subscription is the constraint: an Azure for Students",
+    "offer does not permit zone-redundant provisioning. On a pay-as-you-go subscription this",
+    "line becomes true and nothing else in the template changes.",
+    "",
+    "What is actually lost is worth stating plainly rather than filing as a footnote. Without",
+    "zone redundancy a single datacentre failure takes the production database down, and the",
+    "backup storage below drops from zone-redundant to locally-redundant with it - so the",
+    "recovery path shares a failure domain with the thing it is meant to recover."
+  ],
+  "sqlZoneRedundant": false,
+
+  "_serviceBus": [
+    "PREMIUM, and not for throughput. Premium buys three things Standard cannot: dedicated",
+    "resources so a noisy neighbour cannot affect latency, zone redundancy, and a predictable",
+    "cost instead of per-operation billing that scales with a bug. Standard would work and would",
+    "be defensible for a low-volume service; the reason it is not chosen is the first of those",
+    "three - on Standard, tail latency is somebody else's traffic.",
+    "",
+    "Ten deliveries against dev's three. A production consumer failing is far more likely to be a",
+    "transient downstream outage than a poison message, and burning the retry budget in thirty",
+    "seconds turns a recoverable blip into a DLQ a human has to drain. P14D is long enough that a",
+    "subscription broken over a public holiday still has its messages when somebody returns."
+  ],
+  "serviceBusSku": "Premium",
+  "serviceBusCapacity": 1,
+  "maxDeliveryCount": 10,
+  "messageTimeToLive": "P14D",
+
+  "_api": [
+    "Four times the CPU, and NEVER fewer than two replicas. minReplicas 2, not 1: one replica",
+    "means every deployment, every node drain and every crash is a total outage for as long as",
+    "the replacement takes to start. Two is the smallest number that makes a rolling restart",
+    "invisible, and it is the difference between 'we deploy at 2am' and 'we deploy whenever'."
+  ],
+  "containerCpu": "1.0",
+  "containerMemory": "2Gi",
+  "minReplicas": 2,
+  "maxReplicas": 10,
+
+  "_observability": [
+    "90 days, and a much higher cap. Thirty days is fine for 'why did the build fail'. Ninety is",
+    "the floor for 'this started degrading gradually and nobody noticed for a month', which is",
+    "the incident telemetry is actually for. The cap is raised rather than removed: uncapped",
+    "ingestion has no upper bound on cost, and a logging bug in production emits far more than",
+    "one in dev."
+  ],
+  "logRetentionDays": 90,
+  "logDailyQuotaGb": 10
+}

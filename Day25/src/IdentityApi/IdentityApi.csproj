@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The app whose only job is to prove the identity paths work.
+
+    Without something that actually connects, "there are no secrets in app settings" is a claim
+    about a configuration blade. An app that reads SQL and round-trips a Service Bus message with
+    nothing but a token turns it into a demonstration.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>IdentityApi</RootNamespace>
+
+    <!-- Not set, for the reason recorded in tools/SqlGrant/SqlGrant.csproj:
+         Microsoft.Data.SqlClient throws NotSupportedException at Open() under it. -->
+    <!-- <InvariantGlobalization>true</InvariantGlobalization> -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Implements `Authentication=Active Directory Managed Identity`. System.Data.SqlClient
+         does not, and the failure is a parse error on the connection string. -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.4" />
+    <PackageReference Include="Azure.Identity" Version="1.13.2" />
+  </ItemGroup>
+
+</Project>

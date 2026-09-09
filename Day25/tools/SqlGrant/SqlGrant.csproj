@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A one-file tool that does the step no ARM template can: grant a managed identity a USER
+    inside an Azure SQL database.
+
+    It exists because Day 24 could not run its grant - sqlcmd was not installed, the deployment
+    was otherwise complete, and the API could reach SQL and read nothing. Requiring a separate
+    install for one T-SQL statement is a poor dependency when the machine already has .NET.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SqlGrant</RootNamespace>
+
+    <!--
+      InvariantGlobalization is deliberately NOT set. It is the reflexive choice for a small
+      console tool - it trims the ICU dependency and shrinks the image - and Microsoft.Data.SqlClient
+      refuses to open a connection under it:
+
+        System.NotSupportedException: Globalization Invariant Mode is not supported.
+
+      The driver needs culture-aware collation handling. The failure surfaces at Open(), not at
+      build time, and it is a NotSupportedException rather than a SqlException - so it escaped the
+      catch around the connection attempt and came out as an unhandled crash.
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Microsoft.Data.SqlClient, not System.Data.SqlClient. Only the former implements the
+      `Authentication=Active Directory Default` keyword, which is what lets this connect with the
+      signed-in Azure CLI identity and no password.
+    -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
+    <PackageReference Include="Azure.Identity" Version="1.13.2" />
+  </ItemGroup>
+
+</Project>

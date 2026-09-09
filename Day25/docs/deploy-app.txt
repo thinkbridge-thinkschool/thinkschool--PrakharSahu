@@ -1,0 +1,35 @@
+=== Publishing ===
+  published to artifacts/publish
+  zipped artifacts/identity-api.zip (4849 KB)
+
+=== Deploying to app-identity-dev-sesxqu ===
+WARNING: Note: 'az webapp deploy' does not run build automation (dependency installation, compilation, etc.) by default for Linux web apps. If your package is not pre-built, set the app setting SCM_DO_BUILD_DURING_DEPLOYMENT=true to enable builds during deployment.
+WARNING: Initiating deployment
+WARNING: Deploying from local path: artifacts/identity-api.zip
+WARNING: Warming up Kudu before deployment.
+WARNING: Warmed up Kudu instance successfully.
+WARNING: Polling the status of sync deployment. Start Time: 2026-09-09 08:13:48.451698+00:00 UTC
+WARNING: Status: Build successful. Time: 1(s)
+WARNING: Status: Starting the site... Time: 16(s)
+WARNING: Tip: run 'az webapp troubleshoot status --name app-identity-dev-sesxqu --resource-group rg-identity-dev' to see per-instance runtime status and recent startup summary.
+WARNING: Status: Starting the site... Time: 32(s)
+WARNING: Status: Starting the site... Time: 48(s)
+WARNING: Status: Starting the site... Time: 64(s)
+WARNING: Status: Starting the site... Time: 80(s)
+WARNING: Status: Starting the site... Time: 96(s)
+WARNING: Status: Starting the site... Time: 112(s)
+WARNING: Status: Starting the site... Time: 127(s)
+WARNING: Status: Starting the site... Time: 143(s)
+WARNING: Status: Site started successfully. Time: 159(s)
+WARNING: Deployment has completed successfully
+WARNING: You can visit your app at: http://app-identity-dev-sesxqu.azurewebsites.net
+  deployed.
+
+=== Restarting so Key Vault references re-resolve ===
+  restarted.
+
+=== Waiting for /health ===
+  healthy after 1 attempt(s).
+
+Site: https://app-identity-dev-sesxqu.azurewebsites.net
+Next: ./scripts/prove-no-secrets.sh

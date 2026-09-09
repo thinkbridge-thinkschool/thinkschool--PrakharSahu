@@ -1,0 +1,52 @@
+==============================================================================
+ Identity probes — run against the live App Service
+==============================================================================
+
+--- Easy Auth enforcement (no token) ---
+  GET /health     -> HTTP 200   (excluded from auth on purpose)
+  GET /whoami     -> HTTP 401   (rejected by the PLATFORM, before app code ran)
+  GET /probe/sql  -> HTTP 401
+
+--- With a valid Entra token ---
+  GET /whoami
+    {
+        "authenticatedBy": "App Service Easy Auth (Entra ID), validated before the app was reached",
+        "callerName": "<signed-in-user>",
+        "callerObjectId": "<caller-object-id>",
+        "identityProvider": "aad",
+        "appIdentityClientId": "5d66010b-dab6-4e7e-a2ce-53f86609f561",
+        "note": "No client secret is involved. This API validates tokens; it never issues them."
+    }
+
+  GET /probe/sql
+    {
+        "ok": true,
+        "elapsedMs": 1221,
+        "connectedAs": "5d66010b-dab6-4e7e-a2ce-53f86609f561@8d46a076-d093-416d-a57b-8692cde13bf8",
+        "database": "identity",
+        "serverVersion": "Microsoft SQL Azure (RTM) - 12.0.2000.8",
+        "connectionStringUsed": "Server=tcp:sql-identity-dev-sesxqu.database.windows.net,1433;Initial Catalog=identity;Encrypt=True;TrustServerCertificate=False;Connection Timeout=60;Authentication=Active Directory Managed Identity;User Id=5d66010b-dab6-4e7e-a2ce-53f86609f561",
+        "proof": "The server reports the connection as '5d66010b-dab6-4e7e-a2ce-53f86609f561@8d46a076-d093-416d-a57b-8692cde13bf8'. No password exists: this server has azureADOnlyAuthentication enabled."
+    }
+
+  GET /probe/servicebus
+    {
+        "ok": true,
+        "elapsedMs": 706,
+        "sentMs": 579,
+        "queue": "identity-probe",
+        "fullyQualifiedNamespace": "sb-identity-dev-sesxqu.servicebus.windows.net",
+        "correlationMatched": true,
+        "proof": "Send and receive both succeeded with a token. This namespace has disableLocalAuth: true, so a SAS key would have been rejected."
+    }
+
+  GET /probe/keyvault
+    {
+        "ok": true,
+        "resolved": true,
+        "vault": "kv-idty-dev-sesxqu",
+        "lengthChars": 43,
+        "sha256Prefix": "2907909D96CC8CFB",
+        "proof": "The setting stored on the site is '@Microsoft.KeyVault(VaultName=...;SecretName=...)'. App Service resolved it at startup using the managed identity. The value is in this process's environment and was never in app settings, the template, or git."
+    }
+

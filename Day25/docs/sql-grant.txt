@@ -1,0 +1,25 @@
+=== Database grant ===
+  deployment : identity-20260909-132825
+  server     : sql-identity-dev-sesxqu.database.windows.net
+  database   : identity
+  identity   : id-identity-dev-sesxqu
+
+  opening a temporary firewall rule for 202.12.103.67 (temp-grant-20260909133441)
+
+Connecting to sql-identity-dev-sesxqu.database.windows.net/identity as the signed-in Entra principal...
+  connected as : <signed-in-user>
+  database     : identity
+
+Granting [id-identity-dev-sesxqu]...
+  created via  : FROM EXTERNAL PROVIDER
+  roles        : db_datareader, db_datawriter, db_ddladmin
+
+=== Verified in sys.database_principals ===
+  name  : id-identity-dev-sesxqu
+  type  : EXTERNAL_USER  (EXTERNAL_USER means an Entra principal)
+  sid   : 0x0B01665DB6DA7E4EA2CE53F86609F561
+  roles : db_ddladmin, db_datareader, db_datawriter
+
+Done. The managed identity can now read and write this database with no password.
+
+  removing the temporary firewall rule temp-grant-20260909133441

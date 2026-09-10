@@ -1,0 +1,48 @@
+// =============================================================================================
+// The dependency call breakdown — where a request's time actually goes.
+//
+// ---------------------------------------------------------------------------------------------
+// WHAT THIS ANSWERS THAT THE LATENCY QUERY CANNOT
+//
+// 01-latency-percentiles says POST /api/quotes has a p99 of 400 ms. It cannot say whether that
+// is 400 ms of application code, one slow database write, or forty fast ones.
+//
+// That distinction is the whole investigation. "The endpoint is slow" has no fix; "the endpoint
+// issues 40 queries where it needs 2" has an obvious one. An N+1 query problem is invisible in
+// request telemetry and unmistakable here — `callsPerOperation` climbs while `p50` stays low.
+//
+// ---------------------------------------------------------------------------------------------
+// THE `type` COLUMN IS THE INTERESTING ONE
+//
+// Grouping by it separates the tiers of "API -> worker -> DB" without any knowledge of the code:
+//
+//   SQL / sqlite                 EF Core spans. The DB tier.
+//   Azure Service Bus / Queue    the broker hop, emitted by the Azure SDK.
+//   Http                         the outbound dependency the Day 22 Polly pipeline wraps.
+//   InProc                       spans this application raised itself, e.g. outbox.publish.
+//
+// Splitting by cloud_RoleName as well is what makes the API and the worker separable. The same
+// database is touched by both — the API writing quotes and outbox rows, the worker marking them
+// published — and merging the two would produce a database latency figure belonging to neither.
+// =============================================================================================
+
+dependencies
+| where timestamp > ago(1h)
+
+| summarize
+    calls        = count(),
+    failures     = countif(success == false),
+    p50          = round(percentile(duration, 50), 1),
+    p99          = round(percentile(duration, 99), 1),
+    totalMs      = round(sum(duration), 0),
+    operations   = dcount(operation_Id)
+  by role = cloud_RoleName, type, target, name = tostring(split(name, ' ')[0])
+
+// Calls per traced operation. This is the N+1 detector: a value of 1-2 is a request doing what
+// it looks like it does, and 40 is a loop that should have been a join.
+| extend callsPerOperation = round(todouble(calls) / iff(operations == 0, 1.0, todouble(operations)), 1)
+
+// Total time, not average time, is what identifies the dependency worth optimising. A 2 ms call
+// made 5,000 times costs more than a 500 ms call made twice, and only this column shows it.
+| project role, type, target, name, calls, operations, callsPerOperation, p50, p99, totalMs, failures
+| order by totalMs desc

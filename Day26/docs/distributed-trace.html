@@ -1,0 +1,145 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; padding:34px 38px; background:#fff; width:1520px;
+         font-family:"Avenir Next LT Pro","Mulish",-apple-system,Segoe UI,sans-serif; color:#171528; }
+  h1 { font-size:27px; margin:0 0 4px; font-weight:700; letter-spacing:-.2px; }
+  .sub { color:#5d5a72; font-size:15px; margin-bottom:6px; }
+  .op { font-family:ui-monospace,Consolas,monospace; font-size:13px; color:#3b2a99; margin-bottom:22px; }
+  table { border-collapse:collapse; width:100%; font-size:14.5px; }
+  th { text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.9px;
+       color:#75718c; font-weight:700; padding:0 10px 9px; border-bottom:2px solid #eceaf4; }
+  td { padding:10px; border-bottom:1px solid #f3f1f9; vertical-align:middle; }
+  .chip { padding:3px 10px; border-radius:11px; font-size:12px; font-weight:700; white-space:nowrap; }
+  .name { font-size:14.5px; }
+  .dep { margin-left:9px; font-size:11.5px; color:#75718c; border:1px solid #e2dff0;
+         padding:1px 7px; border-radius:9px; }
+  .track { position:relative; height:15px; background:#f5f3fb; border-radius:8px; }
+  .fill  { position:absolute; height:15px; border-radius:8px; }
+  .ms { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; font-weight:600; }
+  .ids { font-size:10.5px; color:#8b8799; line-height:1.5; }
+  .ids code { font-family:ui-monospace,Consolas,monospace; color:#5b5772; }
+  .note { margin-top:24px; padding:15px 18px; background:#f8f6ff; border-left:4px solid #6d4aff;
+          font-size:14px; line-height:1.65; color:#332f4d; border-radius:0 7px 7px 0; }
+  .note b { color:#171528; }
+</style>
+<h1>One distributed trace — API to worker to database</h1>
+<div class="sub">8 spans across
+  2 roles &middot; rendered from Application Insights query output</div>
+<div class="op">operation_Id c27e69703ab7e657d466ddef9a1bf134</div>
+<table>
+  <tr><th>Role</th><th>Span</th><th>Timeline</th><th>Duration</th><th>Span id / parent</th></tr>
+  
+    <tr>
+      <td class="role"><span class="chip" style="background:#efeaff;color:#3b2a99">quotes-api</span></td>
+      <td class="name" style="padding-left:12px">
+        POST /api/quotes/
+      </td>
+      <td class="bar">
+        <div class="track">
+          <div class="fill" style="left:0%;width:0.8%;background:#6d4aff"></div>
+        </div>
+      </td>
+      <td class="ms">8.6 ms</td>
+      <td class="ids"><code>961736d4b3bc23b4</code><br><span>parent <code>c27e69703ab7e657d466ddef9a1bf134</code></span></td>
+    </tr>
+    <tr>
+      <td class="role"><span class="chip" style="background:#efeaff;color:#3b2a99">quotes-api</span></td>
+      <td class="name" style="padding-left:34px">
+        compute-quote-creation<span class="dep">InProc</span>
+      </td>
+      <td class="bar">
+        <div class="track">
+          <div class="fill" style="left:0.12190661227298391%;width:0.8%;background:#6d4aff"></div>
+        </div>
+      </td>
+      <td class="ms">6.9 ms</td>
+      <td class="ids"><code>3a65d27bc769f38c</code><br><span>parent <code>961736d4b3bc23b4</code></span></td>
+    </tr>
+    <tr>
+      <td class="role"><span class="chip" style="background:#efeaff;color:#3b2a99">quotes-api</span></td>
+      <td class="name" style="padding-left:56px">
+        main<span class="dep">sqlite</span>
+      </td>
+      <td class="bar">
+        <div class="track">
+          <div class="fill" style="left:0.18285991840947585%;width:0.8%;background:#6d4aff"></div>
+        </div>
+      </td>
+      <td class="ms">0.5 ms</td>
+      <td class="ids"><code>bb9d80fe5e373a72</code><br><span>parent <code>3a65d27bc769f38c</code></span></td>
+    </tr>
+    <tr>
+      <td class="role"><span class="chip" style="background:#efeaff;color:#3b2a99">quotes-api</span></td>
+      <td class="name" style="padding-left:56px">
+        main<span class="dep">sqlite</span>
+      </td>
+      <td class="bar">
+        <div class="track">
+          <div class="fill" style="left:0.24381322454596782%;width:0.8%;background:#6d4aff"></div>
+        </div>
+      </td>
+      <td class="ms">0.4 ms</td>
+      <td class="ids"><code>c73663d37c236a49</code><br><span>parent <code>3a65d27bc769f38c</code></span></td>
+    </tr>
+    <tr>
+      <td class="role"><span class="chip" style="background:#efeaff;color:#3b2a99">quotes-api</span></td>
+      <td class="name" style="padding-left:56px">
+        main<span class="dep">sqlite</span>
+      </td>
+      <td class="bar">
+        <div class="track">
+          <div class="fill" style="left:0.30476653068245974%;width:0.8%;background:#6d4aff"></div>
+        </div>
+      </td>
+      <td class="ms">0.4 ms</td>
+      <td class="ids"><code>125f0a0cdcc7bafc</code><br><span>parent <code>3a65d27bc769f38c</code></span></td>
+    </tr>
+    <tr>
+      <td class="role"><span class="chip" style="background:#e0f4f4;color:#04595b">quotes-worker</span></td>
+      <td class="name" style="padding-left:56px">
+        outbox.publish<span class="dep">Other</span>
+      </td>
+      <td class="bar">
+        <div class="track">
+          <div class="fill" style="left:90.63756622496354%;width:2.681945470005646%;background:#0a9396"></div>
+        </div>
+      </td>
+      <td class="ms">44.0 ms</td>
+      <td class="ids"><code>f7ea663c923fd792</code><br><span>parent <code>3a65d27bc769f38c</code></span></td>
+    </tr>
+    <tr>
+      <td class="role"><span class="chip" style="background:#e0f4f4;color:#04595b">quotes-worker</span></td>
+      <td class="name" style="padding-left:78px">
+        consume audit
+      </td>
+      <td class="bar">
+        <div class="track">
+          <div class="fill" style="left:93.92904475633411%;width:6.070949291194598%;background:#0a9396"></div>
+        </div>
+      </td>
+      <td class="ms">99.6 ms</td>
+      <td class="ids"><code>456b85bbd48b1956</code><br><span>parent <code>f7ea663c923fd792</code></span></td>
+    </tr>
+    <tr>
+      <td class="role"><span class="chip" style="background:#e0f4f4;color:#04595b">quotes-worker</span></td>
+      <td class="name" style="padding-left:78px">
+        consume search-index
+      </td>
+      <td class="bar">
+        <div class="track">
+          <div class="fill" style="left:93.92904475633411%;width:6.064853960580949%;background:#0a9396"></div>
+        </div>
+      </td>
+      <td class="ms">99.5 ms</td>
+      <td class="ids"><code>ea4226d3b106601a</code><br><span>parent <code>f7ea663c923fd792</code></span></td>
+    </tr>
+</table>
+<div class="note">
+  The hop that matters is <b>outbox.publish</b>: it runs in <b>quotes-worker</b>, a different OS
+  process, and its parent is a span from <b>quotes-api</b>. Nothing carried that link
+  automatically &mdash; a database row is not a message and has no headers, so the API stored the
+  W3C traceparent on the outbox row and the relay restored it. The two
+  <b>consume</b> spans below it are the broker fan-out, one per subscription, linked from the
+  traceparent the SDK wrote into the message.
+</div>

@@ -1,0 +1,49 @@
+// =============================================================================================
+// p50 / p95 / p99 by endpoint.
+//
+// ---------------------------------------------------------------------------------------------
+// WHY PERCENTILES AND NOT AN AVERAGE
+//
+// An average hides exactly the thing you need to see. Take 99 requests at 20 ms and one at 5 s:
+// the mean is 70 ms, which looks healthy and is a number no single user experienced. The p99 is
+// 5 s, which is what the unluckiest user in a hundred actually waited.
+//
+// p50 and p99 together say something an average cannot. p50 is the typical experience; p99 is the
+// tail. When they are close the service is predictable. When p99 is an order of magnitude above
+// p50 something is intermittent — a cold cache, a lock, a retry, a GC pause — and the median will
+// never show it.
+//
+// p95 is included because the gap between p95 and p99 tells you how many requests are in the
+// tail. If both are high the slowness is broad; if only p99 is high it is a small number of
+// outliers, which is a different investigation.
+// =============================================================================================
+
+requests
+| where timestamp > ago(1h)
+
+// Only the API role. The worker maps no endpoints, so anything it reported here would be a
+// health probe, and averaging two roles that do different work produces a number describing
+// neither.
+| where cloud_RoleName == 'quotes-api'
+
+// /health is excluded deliberately. It is called by probes far more often than the real
+// endpoints, it does almost nothing, and leaving it in drags every aggregate towards its latency
+// — making the service look faster than any user ever experiences.
+| where name !has 'health'
+
+| summarize
+    calls    = count(),
+    failures = countif(success == false),
+    p50      = round(percentile(duration, 50), 1),
+    p95      = round(percentile(duration, 95), 1),
+    p99      = round(percentile(duration, 99), 1),
+    max      = round(max(duration), 1)
+  by endpoint = name
+
+// The ratio is the actionable column. A p99/p50 near 1 means predictable; 10 means something
+// intermittent is happening that the median cannot see.
+| extend tailRatio = round(todouble(p99) / iff(p50 == 0, 1.0, todouble(p50)), 1)
+| extend errorRatePct = round(100.0 * failures / calls, 1)
+
+| project endpoint, calls, p50, p95, p99, max, tailRatio, failures, errorRatePct
+| order by p99 desc

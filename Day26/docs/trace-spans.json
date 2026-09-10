@@ -1,0 +1,135 @@
+{
+  "tables": [
+    {
+      "columns": [
+        {
+          "name": "timestamp",
+          "type": "datetime"
+        },
+        {
+          "name": "role",
+          "type": "string"
+        },
+        {
+          "name": "telemetry",
+          "type": "string"
+        },
+        {
+          "name": "dep",
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "durationMs",
+          "type": "real"
+        },
+        {
+          "name": "id",
+          "type": "string"
+        },
+        {
+          "name": "parent",
+          "type": "string"
+        },
+        {
+          "name": "operation_Id",
+          "type": "string"
+        }
+      ],
+      "name": "PrimaryResult",
+      "rows": [
+        [
+          "2026-09-10T07:50:02.3386941Z",
+          "quotes-api",
+          "request",
+          "",
+          "POST /api/quotes/",
+          8.6,
+          "961736d4b3bc23b4",
+          "c27e69703ab7e657d466ddef9a1bf134",
+          "c27e69703ab7e657d466ddef9a1bf134"
+        ],
+        [
+          "2026-09-10T07:50:02.3400412Z",
+          "quotes-api",
+          "dependency",
+          "InProc",
+          "compute-quote-creation",
+          6.9,
+          "3a65d27bc769f38c",
+          "961736d4b3bc23b4",
+          "c27e69703ab7e657d466ddef9a1bf134"
+        ],
+        [
+          "2026-09-10T07:50:02.3411934Z",
+          "quotes-api",
+          "dependency",
+          "sqlite",
+          "main",
+          0.5,
+          "bb9d80fe5e373a72",
+          "3a65d27bc769f38c",
+          "c27e69703ab7e657d466ddef9a1bf134"
+        ],
+        [
+          "2026-09-10T07:50:02.3426163Z",
+          "quotes-api",
+          "dependency",
+          "sqlite",
+          "main",
+          0.4,
+          "c73663d37c236a49",
+          "3a65d27bc769f38c",
+          "c27e69703ab7e657d466ddef9a1bf134"
+        ],
+        [
+          "2026-09-10T07:50:02.3439092Z",
+          "quotes-api",
+          "dependency",
+          "sqlite",
+          "main",
+          0.4,
+          "125f0a0cdcc7bafc",
+          "3a65d27bc769f38c",
+          "c27e69703ab7e657d466ddef9a1bf134"
+        ],
+        [
+          "2026-09-10T07:50:03.8253655Z",
+          "quotes-worker",
+          "dependency",
+          "Other",
+          "outbox.publish",
+          44,
+          "f7ea663c923fd792",
+          "3a65d27bc769f38c",
+          "c27e69703ab7e657d466ddef9a1bf134"
+        ],
+        [
+          "2026-09-10T07:50:03.8795971Z",
+          "quotes-worker",
+          "request",
+          "",
+          "consume audit",
+          99.6,
+          "456b85bbd48b1956",
+          "f7ea663c923fd792",
+          "c27e69703ab7e657d466ddef9a1bf134"
+        ],
+        [
+          "2026-09-10T07:50:03.87964Z",
+          "quotes-worker",
+          "request",
+          "",
+          "consume search-index",
+          99.5,
+          "ea4226d3b106601a",
+          "f7ea663c923fd792",
+          "c27e69703ab7e657d466ddef9a1bf134"
+        ]
+      ]
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+Application Insights: appi-quotes-dev-6bi37i
+Lookback: 1h
+
+==============================================================================
+ 1. p50 / p95 / p99 by endpoint
+ kql/01-latency-percentiles.kql
+==============================================================================
+  endpoint                  calls  p50    p95    p99   max   tailRatio  failures  errorRatePct
+  ------------------------  -----  -----  -----  ----  ----  ---------  --------  ------------
+  POST /api/auth/login      2      758.5  817    817   817   1.1        0         0           
+  POST /api/quotes/         22     46.8   475.5  483   483   10.3       0         0           
+  GET /api/quotes/          10     261    372    372   372   1.4        0         0           
+  GET /api/quotes/{id:int}  6      3      17.7   17.7  17.7  5.9        6         100         
+  GET /api/outbox/          2      6.4    9.7    9.7   9.7   1.5        0         0           
+
+  5 row(s)
+
+==============================================================================
+ 2. Dependency call breakdown
+ kql/02-dependency-breakdown.kql
+==============================================================================
+  role           type                    target                       name                         calls  operations  callsPerOperation  p50     p99     totalMs  failures
+  -------------  ----------------------  ---------------------------  ---------------------------  -----  ----------  -----------------  ------  ------  -------  --------
+  quotes-worker  InProc | Microsoft.AAD  AzureCliCredential.GetToken  AzureCliCredential.GetToken  2      2           1                  2004.1  2091.3  4095     0       
+  quotes-worker  Other                   outbox.publish               outbox.publish               22     22          1                  60.4    470.2   2151     0       
+  quotes-api     InProc                  compute-quote-creation       compute-quote-creation       22     22          1                  44.9    372.8   1414     0       
+  quotes-worker  sqlite                  ThinkBridge | main           main                         105    105         1                  0.7     64      205      0       
+  quotes-api     sqlite                  ThinkBridge | main           main                         96     46          2.1                0.5     47      148      0       
+
+  5 row(s)
+
+==============================================================================
+ 3. Error rate over time
+ kql/03-error-rate.kql
+==============================================================================
+  timestamp             total  failed  errorRatePct
+  --------------------  -----  ------  ------------
+  2026-09-10T07:35:00Z  22     3       13.64       
+  2026-09-10T07:45:00Z  4      0       0           
+  2026-09-10T07:50:00Z  18     3       16.67       
+
+  3 row(s)
+
+==============================================================================
+ 4. Distributed trace: spans crossing both roles
+ kql/04-distributed-trace.kql
+==============================================================================
+  operation_Id                      roleCount  roles                           spans  tiers                           spanMs  started                     
+  --------------------------------  ---------  ------------------------------  -----  ------------------------------  ------  ----------------------------
+  12a596535306aad31f27552aacaec168  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  849     2026-09-10T07:50:05.3744855Z
+  429095a90e56c45beadec586c6e4cd34  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  1282    2026-09-10T07:50:04.89813Z  
+  da18f93407e337ece701bb5542b2ccf8  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  1717    2026-09-10T07:50:04.4200793Z
+  d36247851fe26361b2bdf2cbe16e0e49  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  730     2026-09-10T07:50:03.3112219Z
+  87d7ef0f8feed008c25716492327e747  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  1167    2026-09-10T07:50:02.8063171Z
+  c27e69703ab7e657d466ddef9a1bf134  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  1541    2026-09-10T07:50:02.3386941Z
+  43665180d6db4b34bf8ed668af71abb5  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  2018    2026-09-10T07:50:01.8188441Z
+  75c1b29bb4ef85cc8a298b566acdc04c  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  2571    2026-09-10T07:50:01.2542824Z
+  98bc54def6686aa0af8c360953993296  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  2981    2026-09-10T07:50:00.7584602Z
+  75d295266643c78f2c5984418ba95af1  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  1456    2026-09-10T07:50:00.2268418Z
+  d729282bf5a9101a3f99b06b3480eea1  2          ["quotes-api","quotes-worker"]  8      ["","InProc","sqlite","Other"]  2413    2026-09-10T07:49:59.1839477Z
+  3e7be5eff4f6faf8cbc8e61e756b3576  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  1102    2026-09-10T07:35:47.5996546Z
+  dbda8065384df36fc903d6191d777c6f  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  1516    2026-09-10T07:35:47.0977775Z
+  a52918157507c6398a6b0ff096cbaf8f  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  1921    2026-09-10T07:35:46.6298524Z
+  0751bd9ce5fc31007f2d7ee5ab435767  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  721     2026-09-10T07:35:45.5681984Z
+  f4b19f6234fe140235f8bcc7073f25fe  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  1100    2026-09-10T07:35:45.0441196Z
+  caec9136de338bdbcd044e4a63612cf6  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  1546    2026-09-10T07:35:44.5389522Z
+  fe34e662cd2780a13468d8c712a099a0  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  1982    2026-09-10T07:35:44.0403243Z
+  7f0bd15bdca56917294d0d3b32d0567e  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  2518    2026-09-10T07:35:43.4291724Z
+  0b3b1f854a7b91920de758af69b27d4d  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  2969    2026-09-10T07:35:42.9161392Z
+  89f0f7fc1c6af1caf72aa0458de88b69  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  1322    2026-09-10T07:35:42.3659283Z
+  0ebb72b832cbe99b844cf6726326781f  2          ["quotes-api","quotes-worker"]  6      ["","InProc","sqlite","Other"]  1917    2026-09-10T07:35:41.299904Z 
+
+  22 row(s)
+
+==============================================================================
+ Assertions
+==============================================================================
+  PASS  the api role reported request telemetry
+  roles seen: quotes-api,quotes-worker
+  PASS  both 'quotes-api' and 'quotes-worker' reported telemetry
+  multi-role traces found: 5
+  PASS  distributed tracing stitches the API and the worker into ONE trace
+  PASS  database dependency spans are present (the DB tier)
+  outbox.publish spans by reparented flag:
+    True	22
+  PASS  outbox publishes were re-parented from the stored traceparent
+  alert rule (enabled severity window): true 2 0:15:00
+  PASS  the error-rate alert rule is deployed and enabled
+
+==============================================================================
+ 0 failed
+==============================================================================

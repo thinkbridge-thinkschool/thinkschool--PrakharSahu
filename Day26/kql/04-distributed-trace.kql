@@ -1,0 +1,92 @@
+// =============================================================================================
+// Does the trace actually stitch API -> worker -> DB?
+//
+// This is the query that verifies the day's central claim, and it is written to be capable of
+// FAILING. A query that returns rows whether or not propagation works proves nothing.
+//
+// ---------------------------------------------------------------------------------------------
+// WHAT WOULD BREAK, AND WHAT IT WOULD LOOK LIKE
+//
+// Two hops in this system do not carry trace context on their own:
+//
+//   1. the outbox ROW      the API writes it, the worker reads it minutes later in another
+//                          process. Activity does not survive a database round trip, so the
+//                          traceparent is stored in a column (OutboxMessage.TraceParent) and
+//                          restored by the relay.
+//
+//   2. the Service Bus HOP the Azure SDK handles this one, writing traceparent into the message
+//                          application properties and reading it back on the consumer.
+//
+// If hop 1 were missing, everything would still work and nothing would error. There would simply
+// be two unrelated traces — one ending at "wrote a row", another beginning at "published a
+// message" — and no way to connect them afterwards. PART 1 is what distinguishes that from
+// success, because it counts traces containing spans from BOTH roles. A broken outbox
+// propagation returns zero rows.
+// =============================================================================================
+
+
+// ---------------------------------------------------------------------------------------------
+// PART 1 — THE PROOF. Traces whose spans span both roles.
+//
+// `operation_Id` is App Insights' name for the W3C trace-id: every span sharing one is one
+// distributed trace. If the outbox column were not carrying the traceparent, no operation_Id
+// would ever contain both 'quotes-api' and 'quotes-worker', and this returns nothing.
+// ---------------------------------------------------------------------------------------------
+union
+    (requests     | extend telemetry = 'request'),
+    (dependencies | extend telemetry = 'dependency')
+| where timestamp > ago(1h)
+| summarize
+    spans      = count(),
+    roles      = make_set(cloud_RoleName),
+    roleCount  = dcount(cloud_RoleName),
+    tiers      = make_set(type),
+    started    = min(timestamp),
+    ended      = max(timestamp)
+  by operation_Id
+| where roleCount > 1                        // <-- the assertion. Zero rows means it is broken.
+| extend spanMs = round(datetime_diff('millisecond', ended, started), 0)
+| project operation_Id, roleCount, roles, spans, tiers, spanMs, started
+| order by started desc
+
+
+// ---------------------------------------------------------------------------------------------
+// PART 2 — one trace, every span, in order. The waterfall behind the screenshot.
+//
+// Picks the most recent multi-role trace rather than asking anyone to paste an id, so it keeps
+// working on a fresh run.
+// ---------------------------------------------------------------------------------------------
+// let stitched = toscalar(
+//     union (requests), (dependencies)
+//     | where timestamp > ago(1h)
+//     | summarize roleCount = dcount(cloud_RoleName), started = min(timestamp) by operation_Id
+//     | where roleCount > 1
+//     | top 1 by started desc
+//     | project operation_Id);
+// union
+//     (requests     | where operation_Id == stitched | extend telemetry = 'request',    dep = ''),
+//     (dependencies | where operation_Id == stitched | extend telemetry = 'dependency', dep = type)
+// | project timestamp, role = cloud_RoleName, telemetry, dep, name,
+//           durationMs = round(duration, 1), id, parent = operation_ParentId
+// | order by timestamp asc
+//
+// Read the `role` column top to bottom. It should change from quotes-api to quotes-worker
+// partway down, with the parent ids linking across the change. That transition IS the deliverable.
+
+
+// ---------------------------------------------------------------------------------------------
+// PART 3 — did the re-parenting actually happen, or did it fall back to a root span?
+//
+// OutboxRelay tags every publish with `outbox.reparented`: true when the row carried a
+// traceparent, false when it was null and a new root trace had to be started.
+//
+// Worth checking separately, because a trace that stitches for a different reason is not
+// evidence for this mechanism. If these are all false and PART 1 still returns rows, the linkage
+// is coming from somewhere else and the outbox column is doing nothing.
+// ---------------------------------------------------------------------------------------------
+// dependencies
+// | where timestamp > ago(1h)
+// | where name has 'outbox.publish'
+// | extend reparented = tostring(customDimensions['outbox.reparented'])
+// | summarize publishes = count() by reparented, role = cloud_RoleName
+// | order by publishes desc

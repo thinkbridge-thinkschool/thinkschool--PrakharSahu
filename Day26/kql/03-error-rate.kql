@@ -1,0 +1,68 @@
+// =============================================================================================
+// Error rate — the query, and the alert built on it.
+//
+// ---------------------------------------------------------------------------------------------
+// WHY A RATE AND NOT A COUNT
+//
+// A count threshold is wrong in both directions at once. Ten failures a minute is a catastrophe
+// for a service doing twenty requests a minute and noise for one doing fifty thousand. A count
+// alert has to be retuned every time traffic changes, and in practice it is not — so it either
+// screams through a healthy traffic spike or stays silent through an outage that happens
+// overnight when volume is low.
+//
+// A rate is dimensionless. Five percent means the same thing at any traffic level.
+// =============================================================================================
+
+
+// ---------------------------------------------------------------------------------------------
+// PART 1 — error rate over time, for a dashboard.
+//
+// Bucketed at 5 minutes because that is roughly how long a person waits before deciding
+// something is wrong. Finer buckets are noisier without being more actionable.
+// ---------------------------------------------------------------------------------------------
+requests
+| where timestamp > ago(1h)
+| where cloud_RoleName == 'quotes-api'
+| summarize
+    total  = count(),
+    failed = countif(success == false)
+  by bin(timestamp, 5m)
+| extend errorRatePct = round(100.0 * failed / total, 2)
+| project timestamp, total, failed, errorRatePct
+| order by timestamp asc
+
+
+// ---------------------------------------------------------------------------------------------
+// PART 2 — which endpoints and which status codes.
+//
+// A rate says something is wrong. This says what. Run it second, not first.
+// ---------------------------------------------------------------------------------------------
+// requests
+// | where timestamp > ago(1h)
+// | where success == false
+// | summarize failures = count() by endpoint = name, resultCode
+// | order by failures desc
+
+
+// ---------------------------------------------------------------------------------------------
+// PART 3 — THE ALERT QUERY, exactly as deployed in infra/modules/alert.bicep.
+//
+// No time filter and no bin(). Both are deliberate: a scheduled query rule supplies its own
+// window via `windowSize`, and adding `ago()` here would AND two windows together and quietly
+// evaluate the wrong span of time.
+//
+// `| where Total > 10` is the line that matters most. Without it a single failed request in an
+// idle minute is a 100% error rate and the alert fires — at 3am, on a dev environment, on a
+// health probe. That one line is the difference between an alert people act on and an alert
+// people mute, and a muted alert is worse than none because it still looks like coverage.
+//
+// `success == false` rather than `resultCode >= 500`, because a 4xx storm is also an outage from
+// the caller's point of view. An expired key returning 401 to every client is not "fine, those
+// are client errors".
+// ---------------------------------------------------------------------------------------------
+// requests
+// | summarize Total = count(), Failed = countif(success == false)
+// | where Total > 10
+// | project ErrorRatePercent = round(100.0 * Failed / Total, 2)
+//
+// Fires when ErrorRatePercent > 5, evaluated every 5 minutes over a 15-minute window.

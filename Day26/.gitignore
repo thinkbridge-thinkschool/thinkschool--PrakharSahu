@@ -1,0 +1,34 @@
+# Build output.
+bin/
+obj/
+
+# Local run configuration, written by scripts/deploy.sh.
+#
+# Not secrets: the App Insights connection string carries a write-only ingestion key and the
+# Service Bus value is a hostname. Ignored because they name ONE specific deployment, and a
+# committed copy is stale the moment anybody redeploys into a fresh resource group.
+#
+# Recreate with:  ./scripts/deploy.sh
+.env
+
+# The SQLite database and its write-ahead log. Recreated by the api role on every run.
+*.db
+*.db-wal
+*.db-shm
+
+# Process logs from scripts/run-trace.sh. Useful while debugging a run, noise in git — and they
+# contain the full MSAL trace, which is a thousand lines per failed token acquisition.
+logs/
+
+# Scratch space used by run-trace.sh and query-kql.sh. Both clean up after themselves; these
+# entries only matter if a run is interrupted.
+.run-tmp/
+.proof-tmp/
+
+# ---------------------------------------------------------------------------------------------
+# docs/ IS committed, deliberately.
+#
+# It holds the captured KQL output, the raw span JSON and the rendered waterfall — the evidence
+# for the day's claims. A deliverable that says "the trace stitches" and ships no trace is an
+# assertion, not a result.
+# ---------------------------------------------------------------------------------------------

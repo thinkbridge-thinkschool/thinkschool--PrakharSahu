@@ -1,0 +1,26 @@
+Subscription: Azure for Students
+=== Compiling ===
+WARNING: A new Bicep release is available: v0.47.16. Upgrade now by running "az bicep upgrade".
+WARNING: A new Bicep release is available: v0.47.16. Upgrade now by running "az bicep upgrade".
+  clean.
+
+=== Deploying ===
+WARNING: A new Bicep release is available: v0.47.16. Upgrade now by running "az bicep upgrade".
+  deployed.
+
+=============================================================================================
+ Deployed
+=============================================================================================
+
+  app insights   appi-quotes-dev-6bi37i
+  workspace id   8e4d6f8c-8c2a-46cf-a000-52b07c866027
+  service bus    sb-quotes-dev-6bi37i.servicebus.windows.net
+  topic          quote-events
+  alert rule     alert-quotes-error-rate
+
+  wrote .env for the local run (gitignored)
+
+Next:
+  ./scripts/run-trace.sh      start the API and the worker, generate traffic
+  ./scripts/query-kql.sh      run every query in kql/ against the workspace
+

@@ -1,0 +1,46 @@
+
+==============================================================================
+ Day 27 hardening assertions
+==============================================================================
+
+--- Authorization is deny-by-default ---
+  GET /api/v1/quotes (no token)      -> 401
+  PASS  protected endpoint refuses an anonymous caller
+  POST /api/v1/cache/reset (no token) -> 401
+  PASS  cache control is no longer anonymous
+  POST /upstream/faults (no token)    -> 401
+  PASS  fault injection is no longer anonymous
+
+--- Versioning ---
+  X-Api-Version header               -> v1
+  PASS  responses declare the version that served them
+
+--- Security headers ---
+  PASS  X-Content-Type-Options present
+  PASS  X-Frame-Options present
+  PASS  Content-Security-Policy present
+  PASS  Referrer-Policy present
+  PASS  Permissions-Policy present
+  PASS  no Server banner
+
+--- Input limits ---
+  PASS  login succeeded against the anonymous, rate-limited auth group
+  200 KB body against a 64 KB cap    -> 413
+  PASS  oversized bodies are refused (413)
+  script tag in quote text           -> {"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred."
+  PASS  TextGuard rejected it (its wording, not the domain's)
+  2,000-char text against a 1,000 cap -> {"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred."
+  PASS  TextGuard enforced the length limit
+
+--- Rate limiting (auth policy: 5/min) ---
+  nine failed logins                 -> 401 401 401 401 429 429 429 429 429 
+  PASS  the limiter returns 429 before the ninth attempt
+
+--- OpenAPI ---
+  /openapi/v1.json (Development)     -> 200
+  PASS  the document is served in Development
+  PASS  the document declares the bearer security scheme
+
+==============================================================================
+ 17 passed, 0 failed
+==============================================================================

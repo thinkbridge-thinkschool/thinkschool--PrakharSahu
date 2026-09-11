@@ -1,0 +1,38 @@
+==============================================================================
+ Private endpoint verification
+==============================================================================
+
+--- 1. Public network access is DISABLED on all three ---
+  SQL         publicNetworkAccess = Disabled
+  ServiceBus  publicNetworkAccess = Disabled
+  KeyVault    publicNetworkAccess = Disabled
+
+--- 2. Each endpoint has a private IP in snet-data ---
+  pe-sql         10.20.1.4
+  pe-servicebus  10.20.1.5
+  pe-keyvault    10.20.1.6
+
+--- 3. Private DNS zones, and the A records Azure wrote into them ---
+  privatelink.database.windows.net
+    sql-quotes-dev-pxd5zf	10.20.1.4
+  privatelink.servicebus.windows.net
+    sb-quotes-dev-pxd5zf	10.20.1.5
+  privatelink.vaultcore.azure.net
+    kv-quotes-dev-pxd5zf	10.20.1.6
+
+--- 4. THE PROOF: a data-plane call from outside the VNet is refused ---
+
+  az keyvault secret list --vault-name kv-quotes-dev-pxd5zf
+    ERROR: (Forbidden) Connection is not an approved private link and caller was ignored because bypass is not set to 'AzureServices' and PublicNetworkAccess is set to 'Disabled'. 
+    Vault: kv-quotes-dev-pxd5zf;location=centralindia
+    Code: Forbidden
+    Message: Connection is not an approved private link and caller was ignored because bypass is not set to 'AzureServices' and PublicNetworkAccess is set to 'Disabled'. 
+
+--- 5. Why a TCP connect is NOT a valid test for Azure SQL ---
+  sql-quotes-dev-pxd5zf.database.windows.net
+    resolves to : 20.192.43.161   <- the regional gateway, not the server
+    TCP 1433    : open  <- the GATEWAY answered. Says nothing about this server; see above.
+
+  Inside the VNet the same name resolves to the private IP in section 3, because the
+  private DNS zone is linked to that VNet and overrides the public answer. No connection
+  string changes anywhere, which is the whole point of doing it with DNS.

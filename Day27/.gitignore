@@ -1,0 +1,22 @@
+# Build output.
+bin/
+obj/
+
+# The SQLite database and its write-ahead log. Recreated on every run.
+*.db
+*.db-wal
+*.db-shm
+
+# Process logs and scan scratch. logs/ also holds the oversized-payload fixtures the hardening
+# verification generates, which are megabytes of the letter "a".
+logs/
+.env
+
+# ZAP's own working directory. The HTML and JSON reports land here; the committed evidence is the
+# console summary in docs/, which is small, diffable and the thing actually quoted in EXERCISE.md.
+zap/
+
+# ---------------------------------------------------------------------------------------------
+# docs/ IS committed — the threat model, the hardening assertions, the private-endpoint
+# verification and the two ZAP summaries. They are the evidence for the day's claims.
+# ---------------------------------------------------------------------------------------------

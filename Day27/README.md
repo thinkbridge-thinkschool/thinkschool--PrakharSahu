@@ -3,8 +3,12 @@
 A STRIDE-lite threat model of the capstone, the data tier moved behind private endpoints, the
 OpenAPI surface hardened, and an OWASP ZAP baseline run before and after.
 
-**Deliverable:** [EXERCISE.md](EXERCISE.md) — the threat model, the private-endpoint change, and
-the ZAP summary with what was fixed.
+The backend was subsequently restructured into a **modular monolith** — one deployable, 23
+projects, five modules with enforced boundaries. That came after the security pass and changed
+none of its numbers: 17 hardening assertions still pass. See [Layout](#layout).
+
+**Deliverable:** [EXERCISE.md](EXERCISE.md) — the threat model, the private-endpoint change, the
+ZAP summary with what was fixed, and the module split.
 **Change-by-change walkthrough:** [update_code.md](update_code.md).
 
 ## What the day actually found
@@ -22,15 +26,33 @@ inverts the default — which is why the threat model was worth writing before t
 
 ## Layout
 
+The backend is a **modular monolith**: one deployable, 23 projects, five modules. Same shape as
+the Day 22 capstone.
+
 ```
 Day27/
-├── backend/                          Day 26's API, hardened
-│   ├── Security/
-│   │   ├── ApiHardening.cs           deny-by-default, rate limits, security headers
-│   │   ├── ApiVersioning.cs          /api/v1, and why the version is in the path
-│   │   └── TextGuard.cs              Span<T> input limits — allocation-free validation
-│   ├── Program.cs                    the versioned group, dev-only gating, Kestrel caps
-│   └── Endpoints/                    re-parented onto the versioned group
+├── backend/
+│   ├── QuotesApi.slnx
+│   ├── Dockerfile / azure.yaml       build context is the solution, not one project
+│   └── src/
+│       ├── QuotesApi.Host/           the ONLY deployable. Composition root.
+│       │   ├── Program.cs            names five modules and nothing inside them
+│       │   └── Security/ApiHardening.cs   deny-by-default, rate limits, headers
+│       ├── QuotesApi.SharedKernel/   referenced by everything, depends on nothing
+│       │   ├── Result / DomainError / TextRules / IClock
+│       │   ├── Observability/Telemetry.cs
+│       │   └── Security/
+│       │       ├── TextGuard.cs      Span<T> input limits — allocation-free
+│       │       ├── ApiVersioning.cs  /api/v1, and why the version is in the path
+│       │       └── RateLimitPolicies.cs   the policy NAMES only
+│       ├── QuotesApi.Persistence/    the one shared AppDbContext — see below
+│       └── Modules/
+│           ├── Quotes/       <- core: quotes, ownership, caching, the report job
+│           ├── Identity/     users, JWT and Entra schemes, auth endpoints
+│           ├── Jobs/         the queue, store and processor loop
+│           ├── Messaging/    Service Bus transport + the transactional outbox
+│           └── Resilience/   the Polly pipeline and the fake upstream
+│               (each: Contracts / Domain / Application / Infrastructure)
 ├── infra/
 │   ├── main.bicep                    VNet + data tier with publicNetworkAccess Disabled
 │   └── modules/private-endpoint.bicep  endpoint + DNS zone + zone group, always together
@@ -38,17 +60,34 @@ Day27/
 │   ├── verify-hardening.sh           17 assertions against a running API
 │   ├── deploy-private.sh             deploy, prove public access is refused, tear down
 │   └── zap-baseline.sh               before/after ZAP scans
+├── tests/
+│   ├── QuotesApi.ArchitectureTests/  the module boundaries, enforced
+│   └── Jobs / Messaging / Outbox / Resilience tests
 └── docs/
     ├── threat-model.md               the STRIDE-lite table
     ├── hardening-verification.txt    17 passed, 0 failed
+    ├── architecture-guardrail-proof.txt   a forbidden reference, refused
     ├── private-endpoint-verification.txt
     └── zap-before.txt / zap-after.txt
 ```
+
+**The rule, and the one exception.** A module may reference another module's `*.Contracts` and
+nothing else. `QuotesApi.ArchitectureTests` fails the build otherwise — see
+`docs/architecture-guardrail-proof.txt`, where a deliberately added
+`Jobs.Infrastructure -> Quotes.Domain` is caught and named.
+
+The exception is a single shared `AppDbContext`, kept because the Day 20 outbox guarantee needs
+a quote and its outbox row in one transaction. It is confined to `QuotesApi.Persistence` and an
+architecture test permits exactly that one edge, so a second shared project fails a test rather
+than joining quietly.
 
 ## Running it
 
 ```bash
 cd Day27
+
+dotnet build backend/QuotesApi.slnx   # all 23 projects
+dotnet test  backend/QuotesApi.slnx   # 75 tests: 63 behaviour + 12 architecture
 
 ./scripts/verify-hardening.sh        # 17 assertions, no Azure needed
 ./scripts/zap-baseline.sh before     # scans Day26/backend — the code as it was
@@ -58,10 +97,18 @@ cd Day27
 ./scripts/deploy-private.sh --down   # tear it down
 ```
 
+To run the API on its own, point at the host project rather than the solution directory —
+`dotnet run` needs a single project and refuses a directory holding 23:
+
+```bash
+dotnet run --project backend/src/QuotesApi.Host
+```
+
 `verify-hardening.sh` asserts the things ZAP structurally cannot: that an endpoint which
 *should* require a token does, that the rate limiter is attached to the group it was meant to be
 attached to, and that the span-based guard — not the pre-existing domain validation — is what
-rejects bad input.
+rejects bad input. It builds the whole solution and runs the host project, so a module that
+fails to compile fails the script rather than surfacing at the first request.
 
 ## The breaking change
 

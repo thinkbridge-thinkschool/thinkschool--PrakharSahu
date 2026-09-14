@@ -19,7 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\backend\QuotesApi.csproj" />
+    <ProjectReference Include="..\..\backend\src\QuotesApi.SharedKernel\QuotesApi.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Jobs\QuotesApi.Jobs.Contracts\QuotesApi.Jobs.Contracts.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Jobs\QuotesApi.Jobs.Domain\QuotesApi.Jobs.Domain.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Jobs\QuotesApi.Jobs.Application\QuotesApi.Jobs.Application.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Jobs\QuotesApi.Jobs.Infrastructure\QuotesApi.Jobs.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

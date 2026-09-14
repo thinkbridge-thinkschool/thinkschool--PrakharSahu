@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using QuotesApi.Data;
-using QuotesApi.Messaging;
-using QuotesApi.Models;
-using QuotesApi.Outbox;
+using QuotesApi.Persistence;
+using QuotesApi.Messaging.Contracts;
+using QuotesApi.Messaging.Application;
+using QuotesApi.Messaging.Infrastructure;
+using QuotesApi.Quotes.Contracts;
+using QuotesApi.SharedKernel;
+using QuotesApi.Quotes.Domain;
+using QuotesApi.Messaging.Domain;
 
 namespace QuotesApi.Outbox.Tests;
 

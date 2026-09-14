@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>QuotesApi.Host</RootNamespace>
+    <UserSecretsId>6f2d02f2-9329-4ddd-b052-4238a5ca777d</UserSecretsId>
+    <!--
+      The assembly keeps its original name. scripts/verify-hardening.sh and
+      scripts/zap-baseline.sh both stop the running API with
+      `Get-Process QuotesApi`, and azd/Docker refer to the same name. Renaming the
+      project without renaming the assembly keeps every one of those working.
+    -->
+    <AssemblyName>QuotesApi</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.6.0" />
+    <PackageReference Include="DotNetEnv" Version="3.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+    <!--
+      Required on the STARTUP project, not just on the one holding the DbContext. The EF
+      tools build the startup project to obtain the service provider, so with the context
+      moved into QuotesApi.Persistence this reference has to be here or every
+      `dotnet ef migrations` command fails with "your startup project does not reference
+      Microsoft.EntityFrameworkCore.Design". It was implicit when the API was one project.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.17.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.17.0-beta.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.17.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuotesApi.SharedKernel\QuotesApi.SharedKernel.csproj" />
+    <ProjectReference Include="..\QuotesApi.Persistence\QuotesApi.Persistence.csproj" />
+    <ProjectReference Include="..\Modules\Quotes\QuotesApi.Quotes.Infrastructure\QuotesApi.Quotes.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Identity\QuotesApi.Identity.Infrastructure\QuotesApi.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Jobs\QuotesApi.Jobs.Infrastructure\QuotesApi.Jobs.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Messaging\QuotesApi.Messaging.Infrastructure\QuotesApi.Messaging.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Resilience\QuotesApi.Resilience.Infrastructure\QuotesApi.Resilience.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!--
+      No ContainerImageName/ContainerImageTag override here: azd expects to push
+      to its own service-environment repository path and pulls the Container App
+      from that same path.
+    -->
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0</ContainerBaseImage>
+    <ContainerUser>root</ContainerUser>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="QuotesApi.SharedKernel" />
+  </ItemGroup>
+
+</Project>

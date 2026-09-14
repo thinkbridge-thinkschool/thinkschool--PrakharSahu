@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using QuotesApi.Messaging;
+using QuotesApi.Messaging.Contracts;
+using QuotesApi.Messaging.Application;
+using QuotesApi.Messaging.Infrastructure;
+using QuotesApi.Quotes.Contracts;
 
 namespace QuotesApi.Messaging.Tests;
 

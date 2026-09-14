@@ -2,7 +2,9 @@ using System.Net;
 using Polly.CircuitBreaker;
 using Polly.RateLimiting;
 using Polly.Timeout;
-using QuotesApi.Resilience;
+using QuotesApi.Resilience.Contracts;
+using QuotesApi.Resilience.Application;
+using QuotesApi.Resilience.Infrastructure;
 
 namespace QuotesApi.Resilience.Tests;
 

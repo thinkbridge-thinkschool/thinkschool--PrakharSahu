@@ -2,9 +2,11 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using QuotesApi.Data;
-using QuotesApi.Messaging;
-using QuotesApi.Outbox;
+using QuotesApi.Persistence;
+using QuotesApi.Messaging.Contracts;
+using QuotesApi.Messaging.Application;
+using QuotesApi.Messaging.Infrastructure;
+using QuotesApi.Quotes.Contracts;
 using MsOptions = Microsoft.Extensions.Options.Options;
 
 namespace QuotesApi.Outbox.Tests;

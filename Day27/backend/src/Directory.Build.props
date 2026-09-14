@@ -1,0 +1,23 @@
+<Project>
+
+  <!--
+    The Web SDK adds a set of implicit usings (Microsoft.AspNetCore.Builder,
+    Microsoft.Extensions.DependencyInjection, and friends) that Microsoft.NET.Sdk does not.
+    Every file in this solution was written inside a Web SDK project and relied on them.
+
+    Re-declaring them here keeps ~60 files free of a dozen mechanical using directives each,
+    and means a file reads the same whether it lives in the host or in a module.
+  -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'QuotesApi.Host'">
+    <Using Include="System.Net.Http.Json" />
+    <Using Include="Microsoft.AspNetCore.Builder" />
+    <Using Include="Microsoft.AspNetCore.Hosting" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+    <Using Include="Microsoft.AspNetCore.Routing" />
+    <Using Include="Microsoft.Extensions.Configuration" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+    <Using Include="Microsoft.Extensions.Hosting" />
+    <Using Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+</Project>

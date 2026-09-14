@@ -1,0 +1,14 @@
+==============================================================================
+ Architecture guardrail proof
+==============================================================================
+
+A test suite that has never failed is a test suite nobody has checked. This adds
+a reference the modular boundary forbids -- the Jobs module reaching into the
+Quotes module's internal domain model -- and shows the build refusing it.
+
+  added:  QuotesApi.Jobs.Infrastructure -> QuotesApi.Quotes.Domain
+
+--- result ---
+  Cross-module references must land on a *.Contracts project:
+  Failed!  - Failed:     1, Passed:    11, Skipped:     0, Total:    12, Duration: 101 ms - QuotesApi.ArchitectureTests.dll (net10.0)
+  QuotesApi.Jobs.Infrastructure -> QuotesApi.Quotes.Domain

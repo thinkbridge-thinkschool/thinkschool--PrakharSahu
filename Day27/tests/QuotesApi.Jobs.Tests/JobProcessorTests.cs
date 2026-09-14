@@ -1,9 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using QuotesApi.Jobs;
-using QuotesApi.Models;
-using QuotesApi.Services;
+using QuotesApi.Jobs.Contracts;
+using QuotesApi.Jobs.Application;
+using QuotesApi.Jobs.Infrastructure;
+using QuotesApi.SharedKernel;
+using QuotesApi.Jobs.Domain;
 
 // This file lives under QuotesApi.*, and the API has its own QuotesApi.Options namespace for
 // JwtOptions. Inside a QuotesApi.* namespace that one wins over Microsoft.Extensions.Options,

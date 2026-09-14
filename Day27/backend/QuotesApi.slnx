@@ -1,0 +1,43 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QuotesApi.Host/QuotesApi.Host.csproj" />
+    <Project Path="src/QuotesApi.Persistence/QuotesApi.Persistence.csproj" />
+    <Project Path="src/QuotesApi.SharedKernel/QuotesApi.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/QuotesApi.Identity.Application/QuotesApi.Identity.Application.csproj" />
+    <Project Path="src/Modules/Identity/QuotesApi.Identity.Contracts/QuotesApi.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/QuotesApi.Identity.Domain/QuotesApi.Identity.Domain.csproj" />
+    <Project Path="src/Modules/Identity/QuotesApi.Identity.Infrastructure/QuotesApi.Identity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Jobs/">
+    <Project Path="src/Modules/Jobs/QuotesApi.Jobs.Application/QuotesApi.Jobs.Application.csproj" />
+    <Project Path="src/Modules/Jobs/QuotesApi.Jobs.Contracts/QuotesApi.Jobs.Contracts.csproj" />
+    <Project Path="src/Modules/Jobs/QuotesApi.Jobs.Domain/QuotesApi.Jobs.Domain.csproj" />
+    <Project Path="src/Modules/Jobs/QuotesApi.Jobs.Infrastructure/QuotesApi.Jobs.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Messaging/">
+    <Project Path="src/Modules/Messaging/QuotesApi.Messaging.Application/QuotesApi.Messaging.Application.csproj" />
+    <Project Path="src/Modules/Messaging/QuotesApi.Messaging.Contracts/QuotesApi.Messaging.Contracts.csproj" />
+    <Project Path="src/Modules/Messaging/QuotesApi.Messaging.Domain/QuotesApi.Messaging.Domain.csproj" />
+    <Project Path="src/Modules/Messaging/QuotesApi.Messaging.Infrastructure/QuotesApi.Messaging.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Quotes/">
+    <Project Path="src/Modules/Quotes/QuotesApi.Quotes.Application/QuotesApi.Quotes.Application.csproj" />
+    <Project Path="src/Modules/Quotes/QuotesApi.Quotes.Contracts/QuotesApi.Quotes.Contracts.csproj" />
+    <Project Path="src/Modules/Quotes/QuotesApi.Quotes.Domain/QuotesApi.Quotes.Domain.csproj" />
+    <Project Path="src/Modules/Quotes/QuotesApi.Quotes.Infrastructure/QuotesApi.Quotes.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Resilience/">
+    <Project Path="src/Modules/Resilience/QuotesApi.Resilience.Application/QuotesApi.Resilience.Application.csproj" />
+    <Project Path="src/Modules/Resilience/QuotesApi.Resilience.Contracts/QuotesApi.Resilience.Contracts.csproj" />
+    <Project Path="src/Modules/Resilience/QuotesApi.Resilience.Domain/QuotesApi.Resilience.Domain.csproj" />
+    <Project Path="src/Modules/Resilience/QuotesApi.Resilience.Infrastructure/QuotesApi.Resilience.Infrastructure.csproj" />
+  </Folder>
+  <Project Path="../tests/QuotesApi.ArchitectureTests/QuotesApi.ArchitectureTests.csproj" />
+  <Project Path="../tests/QuotesApi.Jobs.Tests/QuotesApi.Jobs.Tests.csproj" />
+  <Project Path="../tests/QuotesApi.Messaging.Tests/QuotesApi.Messaging.Tests.csproj" />
+  <Project Path="../tests/QuotesApi.Outbox.Tests/QuotesApi.Outbox.Tests.csproj" />
+  <Project Path="../tests/QuotesApi.Resilience.Tests/QuotesApi.Resilience.Tests.csproj" />
+</Solution>

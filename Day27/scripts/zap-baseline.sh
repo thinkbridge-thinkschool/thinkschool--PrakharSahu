@@ -50,7 +50,23 @@ else
   BACKEND="$(pwd)/backend"
   ENVIRONMENT="Production"
 fi
+# ---------------------------------------------------------------------------------------------
+# The two arms now have DIFFERENT project layouts, and the script has to cope with both.
+#
+# Day 26 is still the original single project. Day 27 is the modular monolith, where the
+# runnable project is src/QuotesApi.Host and `dotnet run` in the solution directory fails.
+#
+# Detecting the shape rather than hardcoding it keeps the before/after comparison honest: the
+# same script, the same target URL, the same scan settings against both.
+# ---------------------------------------------------------------------------------------------
+if [ -d "${BACKEND}/src/QuotesApi.Host" ]; then
+  HOST="${BACKEND}/src/QuotesApi.Host"
+else
+  HOST="${BACKEND}"
+fi
+
 echo "Scanning: ${BACKEND}  (ASPNETCORE_ENVIRONMENT=${ENVIRONMENT})"
+echo "Runnable project: ${HOST}"
 
 die() { printf '\n%s\n' "$*" >&2; exit 1; }
 
@@ -73,8 +89,8 @@ trap stop_app EXIT
 
 stop_app
 for _ in $(seq 1 10); do
-  rm -f "$BACKEND"/quotes.db "$BACKEND"/quotes.db-wal "$BACKEND"/quotes.db-shm 2>/dev/null
-  [ -f "$BACKEND/quotes.db" ] || break
+  rm -f "$HOST"/quotes.db "$HOST"/quotes.db-wal "$HOST"/quotes.db-shm 2>/dev/null
+  [ -f "$HOST/quotes.db" ] || break
   sleep 1
 done
 
@@ -94,7 +110,7 @@ echo "Building..."
 
 echo "Starting the API on ${API_PORT}..."
 (
-  cd "$BACKEND" || exit 1
+  cd "$HOST" || exit 1
   SERVICE_ROLE=api ASPNETCORE_ENVIRONMENT="${ENVIRONMENT}" ASPNETCORE_URLS="http://0.0.0.0:${API_PORT}" dotnet run --no-build --no-launch-profile
 ) > "logs/zap-api-${LABEL}.log" 2>&1 &
 

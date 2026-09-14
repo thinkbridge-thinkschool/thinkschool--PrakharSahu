@@ -1,5 +1,9 @@
-bin/
-obj/
+# `**/bin/`, not `bin/`. A .dockerignore pattern is matched against the whole path, so `bin/`
+# excludes only a bin directory at the context root. With 23 projects the build output now lives
+# at src/Modules/<Module>/<Project>/bin, and the un-prefixed pattern let every one of them into
+# the build context -- hundreds of megabytes, and stale assemblies shadowing a fresh restore.
+**/bin/
+**/obj/
 .env
 .env.*
 .azure/

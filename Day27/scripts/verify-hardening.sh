@@ -26,6 +26,19 @@ cd "$SCRIPT_DIR/.." || exit 1
 
 PORT="${PORT:-5322}"
 BACKEND="$(pwd)/backend"
+
+# ---------------------------------------------------------------------------------------------
+# The backend is a modular monolith: one deployable, 22 projects.
+#
+# `dotnet run` needs a single project and refuses a directory holding a solution, so building and
+# running are now two different paths. BACKEND is where the solution is (build everything, so a
+# broken module fails here rather than at the first request); HOST is the one project that
+# produces an executable.
+#
+# The SQLite file follows ContentRootPath, which is the host project directory, so the cleanup
+# below moved with it.
+# ---------------------------------------------------------------------------------------------
+HOST="${BACKEND}/src/QuotesApi.Host"
 BASE="http://127.0.0.1:${PORT}"
 V1="${BASE}/api/v1"
 
@@ -47,8 +60,8 @@ trap stop_app EXIT
 
 stop_app
 for _ in $(seq 1 10); do
-  rm -f "$BACKEND"/quotes.db "$BACKEND"/quotes.db-wal "$BACKEND"/quotes.db-shm 2>/dev/null
-  [ -f "$BACKEND/quotes.db" ] || break
+  rm -f "$HOST"/quotes.db "$HOST"/quotes.db-wal "$HOST"/quotes.db-shm 2>/dev/null
+  [ -f "$HOST/quotes.db" ] || break
   sleep 1
 done
 
@@ -61,7 +74,7 @@ export Jwt__Key="$(python -c "import secrets;print(secrets.token_urlsafe(48))")"
 export Seed__AdminEmail="seed-admin@example.invalid"
 export Seed__AdminPassword="$(python -c "import secrets;print(secrets.token_urlsafe(24))")"
 
-echo "Building..."
+echo "Building the solution (22 projects)..."
 ( cd "$BACKEND" && dotnet build --nologo -v q ) >/dev/null 2>&1 || die "Build failed."
 
 # Development, so the dev-only endpoints ARE mapped - the point is to prove they are gated by
@@ -69,7 +82,7 @@ echo "Building..."
 # never written".
 echo "Starting the API on ${PORT} (Development)..."
 (
-  cd "$BACKEND" || exit 1
+  cd "$HOST" || exit 1
   SERVICE_ROLE=api ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS="http://127.0.0.1:${PORT}" \
     dotnet run --no-build --no-launch-profile
 ) > logs/verify.log 2>&1 &

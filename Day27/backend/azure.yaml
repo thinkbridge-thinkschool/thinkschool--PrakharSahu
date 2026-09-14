@@ -3,9 +3,15 @@
 name: quotes-api
 metadata:
     template: azd-init@1.31.1
+# The backend is a modular monolith: 22 projects, ONE deployable. azd is pointed at the single
+# executable project; the build pulls the rest in through project references.
+#
+# This file sits at the solution root rather than next to the host project so the Docker build
+# context contains every module. With it beside QuotesApi.Host, `COPY . ./` would copy one
+# project and the restore would fail on eighteen missing references.
 services:
     quotes-api:
-        project: .
+        project: ./src/QuotesApi.Host
         host: containerapp
         language: dotnet
 resources:

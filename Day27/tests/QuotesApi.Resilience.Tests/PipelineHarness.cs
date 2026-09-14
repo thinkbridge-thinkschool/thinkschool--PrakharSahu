@@ -1,7 +1,9 @@
 using System.Net;
 using Polly;
 using Polly.CircuitBreaker;
-using QuotesApi.Resilience;
+using QuotesApi.Resilience.Contracts;
+using QuotesApi.Resilience.Application;
+using QuotesApi.Resilience.Infrastructure;
 
 namespace QuotesApi.Resilience.Tests;
 

@@ -143,8 +143,8 @@ That is why `scripts/verify-hardening.sh` exists: 17 assertions ZAP structurally
 
 ## 4. Input limits with `Span<T>`
 
-`Security/TextGuard.cs` validates over `ReadOnlySpan<char>` and allocates nothing, which is a
-security property rather than an optimisation. Validation is the *first* code to touch a request
+`backend/src/QuotesApi.SharedKernel/Security/TextGuard.cs` validates over `ReadOnlySpan<char>` and
+allocates nothing, which is a security property rather than an optimisation. Validation is the *first* code to touch a request
 body — a validator that allocates proportionally to its input hands the attacker a lever on the
 server's memory, and becomes the denial of service it was meant to prevent.
 
@@ -162,7 +162,45 @@ finds an encoding it did not anticipate.
 
 ---
 
-## 5. Honest gaps
+## 5. The backend is now a modular monolith
+
+Done after the security pass, so none of the numbers above changed — but the folder no longer
+matches a flat API, so it is worth a paragraph.
+
+`backend/` was one project holding 67 files. It is now one deployable built from 23 projects:
+five modules (**Quotes**, Identity, Jobs, Messaging, Resilience), each with
+`Contracts / Domain / Application / Infrastructure`, plus a host, a shared kernel and one
+persistence project. Same shape as the Day 22 capstone.
+
+The boundaries are **enforced, not documented**. `tests/QuotesApi.ArchitectureTests` reads the
+project graph and the emitted assemblies and fails the build on a forbidden reference — proof in
+[`docs/architecture-guardrail-proof.txt`](docs/architecture-guardrail-proof.txt), where a
+deliberately added `Jobs.Infrastructure -> Quotes.Domain` is caught and named.
+
+Two findings worth keeping:
+
+- **`QuoteReportHandler` could not stay in the Jobs module.** It reads quotes, so it needed the
+  quote repository — which meant the job runner referenced the quote feature. It now lives in
+  `Quotes.Infrastructure` and arrives through the `IJobHandler` port Jobs publishes in its
+  Contracts. Jobs no longer knows quotes exist. Nothing forced that question while both sat in
+  one project.
+- **Every endpoint logged as `ILogger<Program>`** — one category for the whole application, so a
+  log filter could not isolate the outbox without silencing authentication. Each module now logs
+  under its own name.
+
+One compromise, recorded rather than hidden: **a single shared `AppDbContext`**, so every
+module's Infrastructure transitively sees every module's entities. It is confined to
+`QuotesApi.Persistence`, and an architecture test permits exactly that one edge — a second
+shared project fails a test instead of joining quietly. Splitting it would mean two contexts
+enlisting in one transaction, which the Day 20 outbox guarantee depends on and which deserves
+its own change.
+
+**Verification after the split:** 17 hardening assertions still pass, unchanged. Tests went from
+63 to 75 — the 12 new ones are the architecture rules.
+
+---
+
+## 6. Honest gaps
 
 - **The application still runs outside the VNet.** `snet-app` exists and is empty. The data tier is
   closed to the internet; moving compute inside is a separate change.

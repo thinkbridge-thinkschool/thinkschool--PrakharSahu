@@ -20,7 +20,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\backend\QuotesApi.csproj" />
+    <ProjectReference Include="..\..\backend\src\QuotesApi.SharedKernel\QuotesApi.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\backend\src\QuotesApi.Persistence\QuotesApi.Persistence.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Quotes\QuotesApi.Quotes.Contracts\QuotesApi.Quotes.Contracts.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Quotes\QuotesApi.Quotes.Domain\QuotesApi.Quotes.Domain.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Messaging\QuotesApi.Messaging.Contracts\QuotesApi.Messaging.Contracts.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Messaging\QuotesApi.Messaging.Domain\QuotesApi.Messaging.Domain.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Messaging\QuotesApi.Messaging.Application\QuotesApi.Messaging.Application.csproj" />
+    <ProjectReference Include="..\..\backend\src\Modules\Messaging\QuotesApi.Messaging.Infrastructure\QuotesApi.Messaging.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

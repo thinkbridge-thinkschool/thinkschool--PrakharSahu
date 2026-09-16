@@ -1,0 +1,25 @@
+==============================================================================
+ Concurrency proof: the double-booking race, before and after
+==============================================================================
+
+A test that has never failed is a test nobody has checked. TryHoldAsync was
+temporarily reverted to the pre-Day-30 shape -- an overlap query followed by an
+insert, with no transaction around them -- and the suite re-run against the same
+real SQL Server.
+
+--- WITHOUT the fix (naive check-then-act) ---
+  [xUnit.net 00:00:03.45]     Dispatch.Scheduling.Concurrency.Tests.ReservationConcurrencyTests.Concurrent_bookings_for_PARTIALLY_overlapping_windows_also_produce_one [FAIL]
+    Failed Dispatch.Scheduling.Concurrency.Tests.ReservationConcurrencyTests.Concurrent_bookings_for_PARTIALLY_overlapping_windows_also_produce_one [3 s]
+     Two live reservations overlap: 10:33 AM-12:33 PM and 10:13 AM-12:13 PM
+       at Dispatch.Scheduling.Concurrency.Tests.ReservationConcurrencyTests.Concurrent_bookings_for_PARTIALLY_overlapping_windows_also_produce_one() in D:\ThinkBridge\Day30\tests\Dispatch.Scheduling.Concurrency.Tests\ReservationConcurrencyTests.cs:line 120
+     at Dispatch.Scheduling.Concurrency.Tests.ReservationConcurrencyTests.Concurrent_bookings_for_PARTIALLY_overlapping_windows_also_produce_one() in D:\ThinkBridge\Day30\tests\Dispatch.Scheduling.Concurrency.Tests\ReservationConcurrencyTests.cs:line 116
+    Failed Dispatch.Scheduling.Concurrency.Tests.ReservationConcurrencyTests.Two_concurrent_bookings_for_the_same_window_produce_exactly_one_reservation [304 ms]
+  Failed!  - Failed:     2, Passed:     1, Skipped:     0, Total:     3, Duration: 3 s - Dispatch.Scheduling.Concurrency.Tests.dll (net10.0)
+
+--- WITH the fix (serializable transaction + unique index backstop) ---
+  Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 9 s - Dispatch.Scheduling.Concurrency.Tests.dll (net10.0)
+
+The failing assertion is the invariant itself -- no two live reservations for one
+technician may overlap -- not a proxy for it. The partial-overlap case is the one
+the unique index cannot catch, so it fails first if the isolation level is ever
+weakened.

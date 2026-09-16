@@ -1,0 +1,14 @@
+# Build output.
+bin/
+obj/
+
+# HTML cards rendered by scripts/build-screenshot-cards.mjs. Regenerated from docs/*.txt on
+# demand -- the committed artefacts are the .jpg captures in Screenshots/.
+.shots/
+
+# Response bodies captured by scripts/smoke.sh.
+.smoke-tmp/
+
+# Test output.
+TestResults/
+*.trx

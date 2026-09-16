@@ -1,0 +1,4 @@
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 12 s - Dispatch.Scheduling.Concurrency.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    12, Skipped:     0, Total:    12, Duration: 193 ms - Dispatch.ArchitectureTests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    17, Skipped:     0, Total:    17, Duration: 204 ms - Dispatch.WorkManagement.Application.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    44, Skipped:     0, Total:    44, Duration: 114 ms - Dispatch.WorkManagement.Domain.Tests.dll (net10.0)

@@ -1,0 +1,6 @@
+tests/Dispatch.ArchitectureTests
+  Passed!  - Failed:     0, Passed:    12, Skipped:     0, Total:    12, Duration: 587 ms - Dispatch.ArchitectureTests.dll (net10.0)
+tests/Dispatch.WorkManagement.Domain.Tests
+  Passed!  - Failed:     0, Passed:    35, Skipped:     0, Total:    35, Duration: 173 ms - Dispatch.WorkManagement.Domain.Tests.dll (net10.0)
+tests/Dispatch.WorkManagement.Application.Tests
+  Passed!  - Failed:     0, Passed:    11, Skipped:     0, Total:    11, Duration: 689 ms - Dispatch.WorkManagement.Application.Tests.dll (net10.0)

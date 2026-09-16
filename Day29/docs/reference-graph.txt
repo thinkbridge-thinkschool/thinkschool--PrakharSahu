@@ -1,0 +1,39 @@
+PROJECT REFERENCE GRAPH  (src/ only -- the architecture the tests enforce)
+
+Dispatch.Api                            ->  Dispatch.Billing.Application
+                                            Dispatch.Billing.Contracts
+                                            Dispatch.Billing.Infrastructure
+                                            Dispatch.Scheduling.Application
+                                            Dispatch.Scheduling.Contracts
+                                            Dispatch.Scheduling.Infrastructure
+                                            Dispatch.WorkManagement.Application
+                                            Dispatch.WorkManagement.Contracts
+                                            Dispatch.WorkManagement.Infrastructure
+Dispatch.Billing.Application            ->  Dispatch.Billing.Contracts
+                                            Dispatch.Billing.Domain
+                                            Dispatch.SharedKernel
+                                            Dispatch.WorkManagement.Contracts
+Dispatch.Billing.Contracts              ->  Dispatch.SharedKernel
+Dispatch.Billing.Domain                 ->  Dispatch.SharedKernel
+Dispatch.Billing.Infrastructure         ->  Dispatch.Billing.Application
+                                            Dispatch.Billing.Domain
+                                            Dispatch.SharedKernel
+Dispatch.Scheduling.Application         ->  Dispatch.Scheduling.Contracts
+                                            Dispatch.Scheduling.Domain
+                                            Dispatch.SharedKernel
+                                            Dispatch.WorkManagement.Contracts
+Dispatch.Scheduling.Contracts           ->  Dispatch.SharedKernel
+Dispatch.Scheduling.Domain              ->  Dispatch.SharedKernel
+Dispatch.Scheduling.Infrastructure      ->  Dispatch.Scheduling.Application
+                                            Dispatch.Scheduling.Domain
+                                            Dispatch.SharedKernel
+Dispatch.SharedKernel                   ->  (none)
+Dispatch.WorkManagement.Application     ->  Dispatch.Scheduling.Contracts
+                                            Dispatch.SharedKernel
+                                            Dispatch.WorkManagement.Contracts
+                                            Dispatch.WorkManagement.Domain
+Dispatch.WorkManagement.Contracts       ->  Dispatch.SharedKernel
+Dispatch.WorkManagement.Domain          ->  Dispatch.SharedKernel
+Dispatch.WorkManagement.Infrastructure  ->  Dispatch.SharedKernel
+                                            Dispatch.WorkManagement.Application
+                                            Dispatch.WorkManagement.Domain

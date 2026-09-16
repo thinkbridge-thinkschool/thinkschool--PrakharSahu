@@ -1,0 +1,30 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Dispatch.Api/Dispatch.Api.csproj" />
+    <Project Path="src/Dispatch.SharedKernel/Dispatch.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Billing/">
+    <Project Path="src/Modules/Billing/Dispatch.Billing.Application/Dispatch.Billing.Application.csproj" />
+    <Project Path="src/Modules/Billing/Dispatch.Billing.Contracts/Dispatch.Billing.Contracts.csproj" />
+    <Project Path="src/Modules/Billing/Dispatch.Billing.Domain/Dispatch.Billing.Domain.csproj" />
+    <Project Path="src/Modules/Billing/Dispatch.Billing.Infrastructure/Dispatch.Billing.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Scheduling/">
+    <Project Path="src/Modules/Scheduling/Dispatch.Scheduling.Application/Dispatch.Scheduling.Application.csproj" />
+    <Project Path="src/Modules/Scheduling/Dispatch.Scheduling.Contracts/Dispatch.Scheduling.Contracts.csproj" />
+    <Project Path="src/Modules/Scheduling/Dispatch.Scheduling.Domain/Dispatch.Scheduling.Domain.csproj" />
+    <Project Path="src/Modules/Scheduling/Dispatch.Scheduling.Infrastructure/Dispatch.Scheduling.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/WorkManagement/">
+    <Project Path="src/Modules/WorkManagement/Dispatch.WorkManagement.Application/Dispatch.WorkManagement.Application.csproj" />
+    <Project Path="src/Modules/WorkManagement/Dispatch.WorkManagement.Contracts/Dispatch.WorkManagement.Contracts.csproj" />
+    <Project Path="src/Modules/WorkManagement/Dispatch.WorkManagement.Domain/Dispatch.WorkManagement.Domain.csproj" />
+    <Project Path="src/Modules/WorkManagement/Dispatch.WorkManagement.Infrastructure/Dispatch.WorkManagement.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Dispatch.ArchitectureTests/Dispatch.ArchitectureTests.csproj" />
+    <Project Path="tests/Dispatch.WorkManagement.Application.Tests/Dispatch.WorkManagement.Application.Tests.csproj" />
+    <Project Path="tests/Dispatch.WorkManagement.Domain.Tests/Dispatch.WorkManagement.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

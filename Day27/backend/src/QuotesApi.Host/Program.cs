@@ -399,8 +399,21 @@ using (var scope = app.Services.CreateScope())
     // the Azure SQL database Day 25 provisioned, where cross-process concurrency is the baseline
     // assumption rather than something to configure around.
     // -----------------------------------------------------------------------------------------
-    db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
-    db.Database.ExecuteSqlRaw("PRAGMA busy_timeout=5000;");
+    // Guarded, because PRAGMA is SQLite syntax and nothing else understands it.
+    //
+    // The comment above already said this was "a SQLite limitation, not a design choice worth
+    // keeping" and that a real deployment would use Azure SQL. When that finally happened, these
+    // two lines were the thing that broke it: SQL Server rejected them with
+    //
+    //   Error Number:102, State:1, Class:15    -- incorrect syntax near 'PRAGMA'
+    //
+    // as an unhandled exception during startup, so the container crash-looped and App Service
+    // served 503 with no clue why. Two lines of setup for a database the app was no longer using.
+    if (db.Database.IsSqlite())
+    {
+        db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
+        db.Database.ExecuteSqlRaw("PRAGMA busy_timeout=5000;");
+    }
 
     // Seeding is the api role's job too, for the same reason as the schema: two processes
     // both finding an empty table and both inserting produces duplicate users.

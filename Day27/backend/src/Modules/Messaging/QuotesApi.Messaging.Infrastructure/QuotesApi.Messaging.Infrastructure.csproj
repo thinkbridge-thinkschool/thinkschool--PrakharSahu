@@ -28,4 +28,17 @@
     <Using Include="QuotesApi.Messaging.Application" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Azure.Identity arrives transitively via EntityFrameworkCore.SqlServer ->
+      Microsoft.Data.SqlClient, which needs it at RUNTIME for Entra authentication to Azure SQL.
+      But Azure.Core 1.60 already defines AzureCliCredential and DefaultAzureCredential, so
+      referencing both at COMPILE time is CS0433, "the type exists in both".
+
+      ExcludeAssets="compile" keeps the assembly in the output for SqlClient to load, and takes
+      it out of the compiler's reference set so the names resolve to Azure.Core alone.
+    -->
+    <PackageReference Include="Azure.Identity" Version="1.17.1" ExcludeAssets="compile" />
+  </ItemGroup>
+
 </Project>

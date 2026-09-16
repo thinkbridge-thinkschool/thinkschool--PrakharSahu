@@ -461,6 +461,8 @@ Temporary Items
 Thumbs.db
 ehthumbs.db
 ehthumbs_vista.db
+run.ps1
+user.ps1
 
 # Dump file
 *.stackdump
@@ -484,3 +486,6 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 .azure
+
+# Accounts created by user.ps1 -- local dev credentials, never committed
+.accounts

@@ -157,7 +157,7 @@ public sealed class JobProcessor : BackgroundService
             using var scope = _scopeFactory.CreateScope();
 
             var handler = scope.ServiceProvider
-                .GetServices<IJobHandler>()
+                .GetServices<IJobHandler>() // dispatching
                 .FirstOrDefault(h => string.Equals(h.JobType, job.Type, StringComparison.OrdinalIgnoreCase));
 
             if (handler is null)

@@ -47,16 +47,70 @@ public static class PersistenceExtensions
         // caching is wired up — otherwise the "before" arm has nothing to count.
         services.AddSingleton<DbQueryCounter>();
 
+        // -----------------------------------------------------------------------------------
+        // Which provider, decided by the SHAPE of the connection string.
+        //
+        // Local development stays on SQLite: no Azure account, no network, no cost, and
+        // verify-hardening.sh keeps working on a laptop. The deployed app runs on Azure SQL,
+        // and the switch is configuration rather than a build flag so the same image runs in
+        // both places.
+        //
+        // The discriminator is the connection string's own grammar -- a SQLite one names a
+        // FILE, a SQL Server one names a HOST. That is a more honest test than checking the
+        // environment name, which would pick the wrong provider the moment somebody runs
+        // Production locally to reproduce a bug.
+        //
+        // Authentication is deliberately NOT part of this decision. The deployed connection
+        // string carries `Authentication=Active Directory Managed Identity`, so the token comes
+        // from the platform and there is no password to configure, rotate or leak -- which is
+        // the Day 25 posture, now applied to this API too.
+        // -----------------------------------------------------------------------------------
+        var configured = config.GetConnectionString("DefaultConnection");
+
         // The service-provider overload, so the interceptor can resolve the singleton counter
         // regardless of the order these extension methods are called in.
         services.AddDbContext<AppDbContext>((serviceProvider, options) =>
-            options
-                .UseSqlite(ResolveConnectionString(config, environment))
-                .AddInterceptors(new DbQueryCounterInterceptor(
-                    serviceProvider.GetRequiredService<DbQueryCounter>())));
+        {
+            if (IsSqlServer(configured))
+            {
+                options.UseSqlServer(configured, sql =>
+                    // Azure SQL serverless auto-pauses when idle, and the connection that wakes
+                    // it can take tens of seconds. Without a retry the first request after a
+                    // quiet night fails with a timeout that reads like an outage and is a cold
+                    // start.
+                    sql.EnableRetryOnFailure(
+                        maxRetryCount: 6,
+                        maxRetryDelay: TimeSpan.FromSeconds(20),
+                        errorNumbersToAdd: null));
+            }
+            else
+            {
+                options.UseSqlite(ResolveConnectionString(config, environment));
+            }
+
+            options.AddInterceptors(new DbQueryCounterInterceptor(
+                serviceProvider.GetRequiredService<DbQueryCounter>()));
+        });
 
         return services;
     }
+
+    /// <summary>
+    /// True when the connection string points at a SQL Server host rather than a SQLite file.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately a cheap structural test rather than a parse.
+    /// <see cref="Microsoft.Data.Sqlite.SqliteConnectionStringBuilder"/> accepts an Azure SQL
+    /// connection string without complaint and treats the whole thing as a file name -- producing
+    /// a database file literally called
+    /// <c>Server=tcp:sql-....database.windows.net,1433;...</c> and an application that starts
+    /// perfectly while writing to nothing anybody will ever read. Checking first is what stops
+    /// that failure, which is silent in exactly the way this codebase keeps learning to distrust.
+    /// </remarks>
+    private static bool IsSqlServer(string? connectionString) =>
+        !string.IsNullOrWhiteSpace(connectionString)
+        && (connectionString.Contains("Server=tcp:", StringComparison.OrdinalIgnoreCase)
+            || connectionString.Contains("Initial Catalog=", StringComparison.OrdinalIgnoreCase));
 
     private static string ResolveConnectionString(IConfiguration config, IHostEnvironment environment)
     {

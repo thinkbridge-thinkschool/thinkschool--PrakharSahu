@@ -8,17 +8,17 @@
   KeyVault    publicNetworkAccess = Disabled
 
 --- 2. Each endpoint has a private IP in snet-data ---
-  pe-sql         10.20.1.4
-  pe-servicebus  10.20.1.5
-  pe-keyvault    10.20.1.6
+  pe-sql         10.20.1.5
+  pe-servicebus  10.20.1.6
+  pe-keyvault    10.20.1.4
 
 --- 3. Private DNS zones, and the A records Azure wrote into them ---
   privatelink.database.windows.net
-    sql-quotes-dev-pxd5zf	10.20.1.4
+    sql-quotes-dev-pxd5zf	10.20.1.5
   privatelink.servicebus.windows.net
-    sb-quotes-dev-pxd5zf	10.20.1.5
+    sb-quotes-dev-pxd5zf	10.20.1.6
   privatelink.vaultcore.azure.net
-    kv-quotes-dev-pxd5zf	10.20.1.6
+    kv-quotes-dev-pxd5zf	10.20.1.4
 
 --- 4. THE PROOF: a data-plane call from outside the VNet is refused ---
 
@@ -30,7 +30,7 @@
 
 --- 5. Why a TCP connect is NOT a valid test for Azure SQL ---
   sql-quotes-dev-pxd5zf.database.windows.net
-    resolves to : 20.192.43.161   <- the regional gateway, not the server
+    resolves to : 20.192.43.160   <- the regional gateway, not the server
     TCP 1433    : open  <- the GATEWAY answered. Says nothing about this server; see above.
 
   Inside the VNet the same name resolves to the private IP in section 3, because the

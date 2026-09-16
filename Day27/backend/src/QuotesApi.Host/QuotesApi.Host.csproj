@@ -20,6 +20,8 @@
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+    <!-- IsSqlite() lives in the Sqlite provider; the host needs it for the PRAGMA guard. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
     <!--
       Required on the STARTUP project, not just on the one holding the DbContext. The EF
       tools build the startup project to obtain the service provider, so with the context

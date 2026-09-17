@@ -1,0 +1,37 @@
+==============================================================================
+ Day 31 coverage, by layer of the pyramid
+==============================================================================
+
+Line coverage per assembly, taken from the coverlet cobertura reports that CI
+uploads. Where an assembly is covered by more than one test project the highest
+figure is shown -- the question is whether the code is exercised, not by whom.
+
+  Domain        (unit)                  75.3%
+      Dispatch.WorkManagement.Domain                  82.3%
+      Dispatch.Scheduling.Domain                      79.2%
+      Dispatch.Billing.Domain                         64.5%
+
+  Application   (unit)                  89.4%
+      Dispatch.WorkManagement.Application             90.1%
+      Dispatch.Scheduling.Application                 90.2%
+      Dispatch.Billing.Application                    88.0%
+
+  Infrastructure (integration)          90.0%
+      Dispatch.WorkManagement.Infrastructure          86.3%
+      Dispatch.Scheduling.Infrastructure              85.9%
+      Dispatch.Billing.Infrastructure                 97.9%
+
+  Host / API    (integration + e2e)     87.9%
+      Dispatch.Api                                    87.9%
+
+  Contracts                             68.0%
+      Dispatch.WorkManagement.Contracts               92.8%
+      Dispatch.Scheduling.Contracts                   77.8%
+      Dispatch.Billing.Contracts                      33.3%
+
+  SharedKernel                          71.7%
+      Dispatch.SharedKernel                           71.7%
+
+  OVERALL (mean across 14 assemblies)   80.6%
+
+The CI gate fails below 60%.

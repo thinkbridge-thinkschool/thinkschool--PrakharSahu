@@ -1,0 +1,13 @@
+==============================================================================
+ Day 31 test results -- the full pyramid
+==============================================================================
+
+Run exactly as CI runs it: Release configuration, --no-build, against a SQL
+Server 2022 container. 0 skipped is the gate.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 4 s - Dispatch.E2E.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 5 s - Dispatch.Scheduling.Concurrency.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    12, Skipped:     0, Total:    12, Duration: 308 ms - Dispatch.ArchitectureTests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    17, Skipped:     0, Total:    17, Duration: 171 ms - Dispatch.WorkManagement.Application.Tests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    26, Skipped:     0, Total:    26, Duration: 1 s - Dispatch.Api.IntegrationTests.dll (net10.0)
+Passed!  - Failed:     0, Passed:    44, Skipped:     0, Total:    44, Duration: 95 ms - Dispatch.WorkManagement.Domain.Tests.dll (net10.0)

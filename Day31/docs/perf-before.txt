@@ -1,0 +1,15 @@
+[before] seeding...
+[before] seeded 01a0ae8f-45ae-786d-97b3-9c3482153c1d with 8 labour entries
+[before] warming up...
+    run 1:  p50   2.67   p95   3.70   p99   4.80   rps   2877
+    run 2:  p50   2.67   p95   3.79   p99   5.14   rps   2851
+    run 3:  p50   2.38   p95   3.94   p99   5.56   rps   3108
+
+  GET /api/work-orders/{id}   [before]
+  2000 samples x 3 runs   concurrency 8   labour rows 8
+
+    p50       2.67 ms   (median of 3 runs)
+    p95       3.79 ms
+    p99       5.14 ms
+    mean      2.77 ms
+

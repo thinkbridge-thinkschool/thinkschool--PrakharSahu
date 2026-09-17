@@ -1,0 +1,31 @@
+==============================================================================
+ Day 31 CI gate proof
+==============================================================================
+
+A gate that has never refused anything is decoration. Both directions were run
+locally, using the same logic the workflow applies.
+
+--- A. A runner whose SQL Server never came up ---
+
+    Every database-backed test skips, deliberately and with a reason. Without the
+    gate this is a GREEN build that executed 73 of 103 tests.
+
+    6 file(s): 103 tests, 73 executed, 30 skipped
+    RESULT: build fails, correctly
+
+--- B. A correctly configured runner ---
+
+    6 file(s): 103 tests, 103 executed, 0 skipped
+    RESULT: build passes
+
+--- Two earlier versions of this gate were themselves wrong ---
+
+    1. grep 'outcome="NotExecuted"' over TestResults/**/results.trx
+       Every test project wrote to the SAME LogFileName, so five of the six result
+       files were overwritten before the gate ran. It reported 0 skipped for a run
+       that skipped 30.
+
+    2. Reading the notExecuted counter.
+       A SkippableFact skip does not set it. Also reported 0.
+
+    The signal that works is total - executed, summed across every .trx.

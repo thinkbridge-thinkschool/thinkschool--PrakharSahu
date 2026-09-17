@@ -1,0 +1,26 @@
+==============================================================================
+ Day 31 security re-check
+==============================================================================
+
+Probed against the running API, before and after the pass. Every 'after' line is
+also asserted by a test in Dispatch.Api.IntegrationTests/SecurityTests.cs, so it
+is enforced on every push rather than checked once.
+
+CONTROL                                    BEFORE                 AFTER
+----------------------------------------   --------------------   --------------------
+Server banner                              Server: Kestrel        absent
+X-Content-Type-Options                     missing                present
+X-Frame-Options                            missing                present
+Content-Security-Policy                    missing                present
+Referrer-Policy                            missing                present
+Cross-Origin-Resource-Policy               missing                present
+Headers on a 404 as well                   missing                present
+
+--- oversized input ---
+5,000-char summary (column is 500)         HTTP 500               HTTP 400
+5,000-char address line                    HTTP 500               HTTP 400
+Kestrel max request body                   30 MB (default)        64 KB
+
+--- still open, deliberately ---
+  Authentication and authorization.  Dispatch has no notion of a caller. Adding a
+  scheme before the roles exist would be security theatre; it is build-plan day 8.

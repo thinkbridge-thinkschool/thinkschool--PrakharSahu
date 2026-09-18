@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\WorkManagement\Dispatch.WorkManagement.Infrastructure\Dispatch.WorkManagement.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\WorkManagement\Dispatch.WorkManagement.Application\Dispatch.WorkManagement.Application.csproj" />
+    <ProjectReference Include="..\Modules\WorkManagement\Dispatch.WorkManagement.Contracts\Dispatch.WorkManagement.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Scheduling\Dispatch.Scheduling.Infrastructure\Dispatch.Scheduling.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Scheduling\Dispatch.Scheduling.Application\Dispatch.Scheduling.Application.csproj" />
+    <ProjectReference Include="..\Modules\Scheduling\Dispatch.Scheduling.Contracts\Dispatch.Scheduling.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Billing\Dispatch.Billing.Infrastructure\Dispatch.Billing.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Billing\Dispatch.Billing.Application\Dispatch.Billing.Application.csproj" />
+    <ProjectReference Include="..\Modules\Billing\Dispatch.Billing.Contracts\Dispatch.Billing.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Required on the STARTUP project, not just where the DbContext lives. The EF tools build the
+      startup project to obtain its service provider, so without this every `dotnet ef migrations`
+      command fails with "your startup project doesn't reference Microsoft.EntityFrameworkCore.Design".
+      The same trap cost time on Day 27; it is written down here so it costs none next time.
+    -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+
+  <!--
+    Container image, built by the SDK rather than by a Dockerfile.
+
+    There is no Dockerfile in this repository and that is a decision, not an omission. ACR Tasks
+    are blocked on this subscription (`TasksOperationsNotAllowed`), so a server-side `az acr build`
+    is not available, and the machine this ships from has no Docker daemon running. That left two
+    honest options: commit a Dockerfile nothing here can build, or use the container support built
+    into the SDK, which produces an OCI image and pushes it over HTTPS with no daemon at all.
+
+    A Dockerfile that is never built is the same class of artefact as a test that is always
+    skipped — it looks like coverage and is not. So there is no Dockerfile.
+
+    What is given up: no arbitrary build steps, and the base image is whatever Microsoft ships
+    rather than something hardened in-house. Neither matters yet. The day either does, a Dockerfile
+    comes back and this block goes away.
+  -->
+  <PropertyGroup>
+    <ContainerRepository>dispatch-api</ContainerRepository>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0</ContainerBaseImage>
+
+    <!-- Container Apps routes here; it must match the ingress target port. -->
+    <ContainerPort>8080</ContainerPort>
+
+    <!--
+      No ContainerUser here on purpose: since .NET 8 the SDK already makes the image run as the
+      non-root `app` account the aspnet base image ships. Setting it by hand to $APP_UID would
+      write that string literally into the image config — MSBuild does not expand it and the SDK
+      does not substitute environment variables — producing an image that fails to start with
+      "unable to find user $APP_UID". Verified with `docker inspect` on the pushed tag.
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ContainerEnvironmentVariable Include="ASPNETCORE_URLS" Value="http://+:8080" />
+  </ItemGroup>
+
+</Project>

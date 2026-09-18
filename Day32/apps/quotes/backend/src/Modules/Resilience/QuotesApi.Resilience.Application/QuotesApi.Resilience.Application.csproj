@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>QuotesApi.Resilience.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuotesApi.Resilience.Domain\QuotesApi.Resilience.Domain.csproj" />
+    <ProjectReference Include="..\QuotesApi.Resilience.Contracts\QuotesApi.Resilience.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="QuotesApi.SharedKernel" />
+    <Using Include="QuotesApi.Resilience.Domain" />
+    <Using Include="QuotesApi.Resilience.Contracts" />
+  </ItemGroup>
+
+</Project>

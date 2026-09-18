@@ -1,0 +1,118 @@
+using Dispatch.Scheduling.Domain.Reservations;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Dispatch.Scheduling.Infrastructure.Persistence;
+
+/// <summary>
+/// The Scheduling module's own database context, over the <c>scheduling</c> schema.
+/// </summary>
+public sealed class SchedulingDbContext(DbContextOptions<SchedulingDbContext> options)
+    : DbContext(options)
+{
+    public const string Schema = "scheduling";
+
+    public DbSet<Reservation> Reservations => Set<Reservation>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema(Schema);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(SchedulingDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
+    }
+}
+
+/// <summary>
+/// How a <see cref="Reservation"/> is stored.
+/// </summary>
+/// <remarks>
+/// Simpler than the work order: no owned collections, and the only value object is the technician
+/// id. Note that Scheduling's <c>TechnicianId</c> is a <c>sealed record</c> while
+/// WorkManagement's is a <c>readonly record struct</c> — the same name, two independent types,
+/// which is the bounded-context boundary showing up as a mapping difference rather than as a
+/// shared class.
+/// </remarks>
+public sealed class ReservationConfiguration : IEntityTypeConfiguration<Reservation>
+{
+    public void Configure(EntityTypeBuilder<Reservation> builder)
+    {
+        builder.ToTable("Reservations");
+
+        builder.HasKey(reservation => reservation.Id);
+
+        builder.Property(reservation => reservation.Id)
+            .HasConversion(id => id.Value, value => new ReservationId(value))
+            .ValueGeneratedNever();
+
+        builder.Property(reservation => reservation.TechnicianId)
+            .HasConversion(id => id.Value, value => new TechnicianId(value))
+            .IsRequired();
+
+        // A plain Guid, not a WorkOrderId. Scheduling holds a reference to something in another
+        // context and deliberately does not import its id type -- that would be a compile-time
+        // dependency on WorkManagement's internals for the sake of type safety Scheduling cannot
+        // enforce anyway.
+        builder.Property(reservation => reservation.WorkOrderId).IsRequired();
+
+        builder.Property(reservation => reservation.Start).IsRequired();
+        builder.Property(reservation => reservation.End).IsRequired();
+        builder.Property(reservation => reservation.IsReleased).IsRequired();
+
+        // The query the overlap check runs. Filtered on live reservations, because a released one
+        // can never conflict and there is no reason to keep it in the index.
+        // UNIQUE, filtered on live reservations only.
+        //
+        // Day 29 had this index non-unique, purely to make the overlap query fast. Making it
+        // unique turns it into a constraint: the database itself now refuses a second live
+        // reservation for the same technician and the same exact window, whatever the
+        // application believes.
+        //
+        // The filter is what makes that workable. Without `[IsReleased] = 0`, releasing a slot
+        // and re-booking the identical window would collide with the released row, and a
+        // cancellation would permanently poison that slot.
+        //
+        // Honest limit: this catches an EXACT duplicate window, not a partial overlap. SQL
+        // Server has no exclusion constraint, so 09:00-11:00 versus 10:00-12:00 is caught by the
+        // serializable transaction in EfReservationRepository.TryHoldAsync, not here. The index
+        // is the backstop; the transaction is the mechanism.
+        builder.HasIndex(reservation => new { reservation.TechnicianId, reservation.Start, reservation.End })
+            .HasDatabaseName("IX_Reservations_Technician_Window")
+            .HasFilter("[IsReleased] = 0")
+            .IsUnique();
+
+        // Answers "is this order already booked?", which the handler checks for idempotency.
+        builder.HasIndex(reservation => reservation.WorkOrderId)
+            .HasDatabaseName("IX_Reservations_WorkOrder");
+
+        builder.Ignore(reservation => reservation.DomainEvents);
+    }
+}
+
+public static class SchedulingPersistence
+{
+    public static IServiceCollection AddSchedulingPersistence(
+        this IServiceCollection services, string connectionString)
+    {
+        // ---------------------------------------------------------------------------------
+        // Pooled, not plain AddDbContext.
+        //
+        // A DbContext is cheap to use and not cheap to CREATE: each one builds its own internal
+        // service provider, resolves its model, and wires up change tracking. Under load that
+        // construction cost is paid on every single request and shows up as latency that no
+        // query tuning can remove, because it happens before any SQL is sent.
+        //
+        // Pooling resets and reuses instances instead. The constraint it imposes is the reason
+        // it is safe here: a pooled context may only take DbContextOptions, so it cannot capture
+        // per-request state that would leak between requests.
+        // ---------------------------------------------------------------------------------
+        services.AddDbContextPool<SchedulingDbContext>(options =>
+            options.UseSqlServer(connectionString, sql =>
+            {
+                sql.EnableRetryOnFailure(6, TimeSpan.FromSeconds(20), null);
+                sql.MigrationsHistoryTable("__EFMigrationsHistory", SchedulingDbContext.Schema);
+            }));
+
+        return services;
+    }
+}

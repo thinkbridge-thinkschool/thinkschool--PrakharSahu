@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    SQL Server migrations, in their own assembly.
+
+    EF Core migrations are PROVIDER-SPECIFIC, and this is the thing that is easy to not know until
+    a deployment goes wrong. The existing migrations in QuotesApi.Persistence were generated
+    against SQLite, so they declare their columns as TEXT and INTEGER. Those are not SQL Server
+    types in any useful sense — TEXT is deprecated, cannot be indexed, and cannot be compared with
+    = — so replaying them against Azure SQL produces a schema that is created successfully and is
+    wrong. EF noticed the mismatch and refused:
+
+      The model for context 'AppDbContext' has pending changes.
+
+    which was the deployment telling the truth about a problem that had been latent since Day 17.
+
+    The documented fix is one migrations assembly per provider, because EF discovers migrations by
+    scanning an assembly and cannot tell two providers' migrations apart inside one. The SQLite set
+    stays where it is and keeps serving local development; this project holds the SQL Server set;
+    PersistenceExtensions names this assembly only on the SQL Server branch.
+
+    There is no code in here on purpose. It is a container for generated migrations and nothing
+    else, which is what makes it safe to regenerate wholesale.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>QuotesApi.Persistence.SqlServer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuotesApi.Persistence\QuotesApi.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

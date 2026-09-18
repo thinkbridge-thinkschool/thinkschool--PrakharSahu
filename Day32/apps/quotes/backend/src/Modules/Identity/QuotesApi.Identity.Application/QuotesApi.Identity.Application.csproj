@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>QuotesApi.Identity.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuotesApi.Identity.Domain\QuotesApi.Identity.Domain.csproj" />
+    <ProjectReference Include="..\QuotesApi.Identity.Contracts\QuotesApi.Identity.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="QuotesApi.SharedKernel" />
+    <Using Include="QuotesApi.Identity.Domain" />
+    <Using Include="QuotesApi.Identity.Contracts" />
+  </ItemGroup>
+
+</Project>

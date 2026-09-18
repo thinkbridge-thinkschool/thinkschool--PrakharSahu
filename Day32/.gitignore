@@ -1,0 +1,27 @@
+# Build output.
+bin/
+obj/
+
+# Node.
+node_modules/
+dist/
+.angular/
+
+# Test output.
+TestResults/
+*.trx
+
+# Response bodies captured by the demo and smoke scripts.
+.smoke-tmp/
+
+# Local databases. The deployed applications use Azure SQL; these only appear when somebody runs
+# a backend on their own machine, where the provider falls back to SQLite.
+*.db
+*.db-shm
+*.db-wal
+
+# Accounts created by apps/quotes/backend/user.ps1 during local testing.
+.accounts
+
+# HTML cards rendered by the screenshot scripts.
+.shots/

@@ -1,0 +1,25 @@
+Day 32 — test results
+Captured 2026-09-18 06:53 UTC
+
+QUOTES — the Day 27 modular monolith, 23 projects, 5 modules
+  Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 130 ms - QuotesApi.ArchitectureTests.dll (net10.0)
+  Passed!  - Failed:     0, Passed:     7, Skipped:     0, Total:     7, Duration: 55 ms - QuotesApi.Messaging.Tests.dll (net10.0)
+  Passed!  - Failed:     0, Passed:     8, Skipped:     0, Total:     8, Duration: 1 s - QuotesApi.Jobs.Tests.dll (net10.0)
+  Passed!  - Failed:     0, Passed:    40, Skipped:     0, Total:    40, Duration: 3 s - QuotesApi.Resilience.Tests.dll (net10.0)
+  Passed!  - Failed:     0, Passed:     8, Skipped:     0, Total:     8, Duration: 5 s - QuotesApi.Outbox.Tests.dll (net10.0)
+
+DISPATCH — the Day 31 capstone
+  Passed!  - Failed:     0, Passed:    44, Skipped:     0, Total:    44, Duration: 132 ms - Dispatch.WorkManagement.Domain.Tests.dll (net10.0)
+  Passed!  - Failed:     0, Passed:    17, Skipped:     0, Total:    17, Duration: 149 ms - Dispatch.WorkManagement.Application.Tests.dll (net10.0)
+  Passed!  - Failed:     0, Passed:    12, Skipped:     0, Total:    12, Duration: 131 ms - Dispatch.ArchitectureTests.dll (net10.0)
+
+NOT RUN HERE, and worth saying rather than counting as green:
+
+  Dispatch.Api.IntegrationTests        26 tests
+  Dispatch.Scheduling.Concurrency      3 tests
+  Dispatch.E2E.Tests                   1 test
+
+Those three need a SQL Server and the DISPATCH_TEST_SQL connection string. They are skipped
+without it, and Day 31 added a CI gate that fails a build reporting skipped tests precisely so
+a green run cannot quietly mean "ran two thirds of them". They pass against a local SQL Server
+container; they did not run in this capture.

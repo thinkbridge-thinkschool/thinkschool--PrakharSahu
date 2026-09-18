@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json.schemastore.org/staticwebapp.config.json",
+
+  "//navigationFallback": [
+    "The app routes on the client, so a cold load of /quotes/7 must be answered with",
+    "index.html rather than 404. The exclusions matter as much as the rule: without them a",
+    "mistyped asset path returns index.html with a 200, the browser tries to parse HTML as",
+    "JavaScript, and the failure surfaces as a syntax error far from its cause."
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/*.{css,js,mjs,map,json,txt,xml,ico,png,jpg,jpeg,gif,svg,webp,avif,woff,woff2,ttf,eot}"
+    ]
+  },
+
+  "routes": [
+    {
+      "//": "Hashed filenames are content-addressed, so a year is safe and any change ships under a new name.",
+      "route": "/*.{js,mjs,css,woff2,woff,png,jpg,jpeg,svg,webp,avif,ico}",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" }
+    },
+    {
+      "//": "The entry document is the one file whose name never changes; caching it strands users on an old build.",
+      "route": "/index.html",
+      "headers": { "cache-control": "no-cache, must-revalidate" }
+    },
+    {
+      "//": "Same reasoning as index.html — the bare route serves the same document.",
+      "route": "/",
+      "headers": { "cache-control": "no-cache, must-revalidate" }
+    }
+  ],
+
+  "//globalHeaders": [
+    "connect-src names the BFF explicitly. That is the only cross-origin destination this",
+    "app is allowed to reach, so an injected script cannot exfiltrate to anywhere else — and",
+    "the BFF host is rewritten at deploy time by scripts/set-bff-url.mjs.",
+    "style-src needs 'unsafe-inline' because the Angular build inlines critical CSS into a",
+    "<style> tag; script-src does not, because every script it emits is an external file."
+  ],
+  "globalHeaders": {
+    "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://quotes-bff.happydesert-51845d93.centralindia.azurecontainerapps.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+    "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    "cross-origin-opener-policy": "same-origin"
+  },
+
+  "mimeTypes": {
+    ".json": "application/json",
+    ".webmanifest": "application/manifest+json",
+    ".woff2": "font/woff2"
+  },
+
+  "responseOverrides": {
+    "404": { "rewrite": "/index.html", "statusCode": 200 }
+  },
+
+  "//platform": "No apiRuntime block: this Static Web App has no managed functions. The token broker is a separate Container App with its own managed identity, because SWA's managed functions cannot be given one."
+}

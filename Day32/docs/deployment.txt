@@ -1,0 +1,118 @@
+
+========================================================================================
+ SUBSCRIPTION
+========================================================================================
+  Azure for Students	132ef106-f8ec-4352-83e4-9bc238274f25	8d46a076-d093-416d-a57b-8692cde13bf8
+
+========================================================================================
+ RESOURCE GROUP  rg-ship-day32
+========================================================================================
+Name
+-------------------------------
+ca-quotes-api
+ca-dispatch-api
+ca-quotes-bff
+ca-quotes-web
+kv-ship-egyg6zmpty3tm
+id-ship-egyg6zmpty3tm
+sql-ship-egyg6zmpty3tm
+sql-ship-egyg6zmpty3tm/master
+sql-ship-egyg6zmpty3tm/dispatch
+sql-ship-egyg6zmpty3tm/quotes
+
+========================================================================================
+ APPLICATIONS
+========================================================================================
+Name             Url                                                                      Replicas    Image
+---------------  -----------------------------------------------------------------------  ----------  -----------------------------------------------------
+ca-dispatch-api  ca-dispatch-api.happydesert-51845d93.centralindia.azurecontainerapps.io  0           quotesday17acr22887.azurecr.io/dispatch-api:day32
+ca-quotes-api    ca-quotes-api.happydesert-51845d93.centralindia.azurecontainerapps.io    0           quotesday17acr22887.azurecr.io/quotes-api-day32:day32
+ca-quotes-bff    ca-quotes-bff.happydesert-51845d93.centralindia.azurecontainerapps.io    0           quotesday17acr22887.azurecr.io/quotes-bff-day32:day32
+ca-quotes-web    ca-quotes-web.happydesert-51845d93.centralindia.azurecontainerapps.io    0           quotesday17acr22887.azurecr.io/quotes-web-day32:day32
+
+========================================================================================
+ THE CLAIM: NO PASSWORD ANYWHERE
+========================================================================================
+
+  Every environment variable the two APIs carry, in full. A connection string appears here
+  in plain text because there is no credential in it to protect: the driver is told to get a
+  token from the platform, and 'User Id' names WHICH identity by client id — a public value.
+
+  --- ca-quotes-api ---
+  Name                                   Value                                                                                                                                                                                                                                                       SecretRef
+  -------------------------------------  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  ---------------
+  ConnectionStrings__DefaultConnection   Server=tcp:sql-ship-egyg6zmpty3tm.database.windows.net,1433;Initial Catalog=quotes;Encrypt=True;TrustServerCertificate=False;Connection Timeout=60;Authentication=Active Directory Managed Identity;User Id=26751e62-4f9f-4efe-b81a-9154f0e0ff6e
+  Jwt__Key                                                                                                                                                                                                                                                                                           jwt-signing-key
+  ServiceBus__FullyQualifiedNamespace    sb-quotes-dev-6bi37i.servicebus.windows.net
+  AZURE_CLIENT_ID                        26751e62-4f9f-4efe-b81a-9154f0e0ff6e
+  CallerIdentity__TenantId               8d46a076-d093-416d-a57b-8692cde13bf8
+  CallerIdentity__Audience               api://729a2be3-9609-4fd1-b7c5-e658386f9bfd
+  CallerIdentity__RequiredRole           Api.Invoke
+  ASPNETCORE_ENVIRONMENT                 Production
+  APPLICATIONINSIGHTS_CONNECTION_STRING  InstrumentationKey=0785d6bb-c38b-4c50-aca5-6e38add366f5;IngestionEndpoint=https://centralindia-0.in.applicationinsights.azure.com/;LiveEndpoint=https://centralindia.livediagnostics.monitor.azure.com/;ApplicationId=8551bc0d-f046-4768-b996-ae4627320b30
+
+  --- ca-dispatch-api ---
+  Name                         Value
+  ---------------------------  --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  ConnectionStrings__Dispatch  Server=tcp:sql-ship-egyg6zmpty3tm.database.windows.net,1433;Initial Catalog=dispatch;Encrypt=True;TrustServerCertificate=False;Connection Timeout=60;Authentication=Active Directory Managed Identity;User Id=26751e62-4f9f-4efe-b81a-9154f0e0ff6e
+  DISPATCH_MIGRATE_ON_STARTUP  false
+  ASPNETCORE_ENVIRONMENT       Production
+
+  The rows with a secretRef and no value are Key Vault references. The platform resolves
+  them at container start using the managed identity; the values are not in the template,
+  not in deployment history, and not returned by 'az containerapp show'.
+
+  --- secrets declared by ca-quotes-api ---
+  Name             KeyVaultUrl
+  ---------------  ---------------------------------------------------------------------
+  jwt-signing-key  https://kv-ship-egyg6zmpty3tm.vault.azure.net/secrets/jwt-signing-key
+
+========================================================================================
+ SQL — ENTRA ONLY, NO SQL LOGINS
+========================================================================================
+  sql-ship-egyg6zmpty3tm	sql-ship-egyg6zmpty3tm.database.windows.net	None	User
+
+  databases (serverless, auto-pause 60 min):
+  Name      Sku          Status    AutoPauseMin
+  --------  -----------  --------  --------------
+  dispatch  GP_S_Gen5_1  Online    60
+  quotes    GP_S_Gen5_1  Online    60
+
+  firewall rules:
+  Name                Start    End
+  ------------------  -------  -------
+  AllowAzureServices  0.0.0.0  0.0.0.0
+
+  0.0.0.0-0.0.0.0 is the documented sentinel for 'any Azure service'. It is not the whole
+  internet: the server still refuses anything that cannot present an Entra token for a
+  principal it has a database user for.
+
+========================================================================================
+ IDENTITY — THE THREE IDS
+========================================================================================
+  id-ship-egyg6zmpty3tm	26751e62-4f9f-4efe-b81a-9154f0e0ff6e	68404a78-a870-4b32-a7b3-c76fb4485d32
+
+  clientId     what SQL derives the user SID from, and what the connection strings carry
+  principalId  what role assignments and the Entra app-role grant name
+  Using one where the other belongs deploys cleanly and then refuses every login.
+
+========================================================================================
+ WHAT IS BORROWED FROM EARLIER DAYS
+========================================================================================
+
+  registry        quotesday17acr22887        Day 17   a second Basic registry is a second
+                                                      fixed monthly charge for no benefit
+  environment     thinkschool-env            Day 17   Azure permits ONE per region per
+                                                      subscription; the allowance is spent
+  service bus     sb-quotes-dev-6bi37i       Day 26   a Standard namespace is ~Rs 28/day
+                                                      standing, and this one already has the
+                                                      quote-events topic the API expects
+  app insights    appi-quotes-dev-6bi37i     Day 26   one system's traces belong in one place
+  entra app       quotes-api-day17           Day 17   a second audience is how an audience
+                                                      check becomes a formality
+
+  teardown.sh deletes the resource group and none of these.
+
+========================================================================================
+ END
+========================================================================================

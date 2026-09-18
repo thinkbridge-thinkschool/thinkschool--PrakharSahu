@@ -1,0 +1,15 @@
+Dependency audit
+Captured 2026-09-18 08:09 UTC
+
+--- quotes (.NET) ---
+  0 vulnerable packages
+
+--- dispatch (.NET) ---
+  0 vulnerable packages
+
+--- quotes-bff (npm) ---
+  found 0 vulnerabilities
+
+--- quotes-web (npm) ---
+  found 0 vulnerabilities
+

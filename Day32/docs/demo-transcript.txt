@@ -1,0 +1,243 @@
+
+==> Resolving the deployment
+WARNING: The behavior of this command has been altered by the following extension: containerapp
+    web       https://ca-quotes-web.happydesert-51845d93.centralindia.azurecontainerapps.io
+    broker    https://ca-quotes-bff.happydesert-51845d93.centralindia.azurecontainerapps.io
+    quotes    https://ca-quotes-api.happydesert-51845d93.centralindia.azurecontainerapps.io
+    dispatch  https://ca-dispatch-api.happydesert-51845d93.centralindia.azurecontainerapps.io
+
+============================================================================================
+ 0. Cold start — everything scales to zero, so the demo starts by waiting
+============================================================================================
+
+  Four apps at zero replicas and two auto-paused databases. The first request of the day pays
+
+  a container start and a database resume, back to back. This is the honest cost of the cost.
+  [pass] quotes-api up in 0s
+  [pass] broker up in 0s
+  [pass] dispatch-api up in 1s
+  [pass] web up in 0s
+
+============================================================================================
+ 1. The Quotes API refuses to be called directly
+============================================================================================
+
+  The API is on a public hostname. It still will not answer /api/* for anyone who cannot
+
+  present an app-only Entra token carrying Api.Invoke. A browser cannot mint one.
+
+      GET https://ca-quotes-api.happydesert-51845d93.centralindia.azurecontainerapps.io/api/v1/quotes
+      -> HTTP 401
+      {
+        "error": "caller-token-invalid",
+        "detail": "This API only accepts requests carrying a valid X-Caller-Token."
+      }
+  [pass] refused with 401 - and /health answered 200 a moment ago, so this is policy, not an outage
+
+============================================================================================
+ 2. The broker gets past that gate, and runs into the next one
+============================================================================================
+
+  Same request, one hop earlier. The broker attaches its managed-identity token in
+
+  X-Caller-Token, so the caller check passes. The USER check does not: Day 27 made
+
+  authentication the fallback policy, so an endpoint is authenticated unless it says otherwise.
+
+  Two independent gates, and this proves the second one is real rather than implied.
+
+      GET https://ca-quotes-bff.happydesert-51845d93.centralindia.azurecontainerapps.io/api/v1/quotes  (no user token)
+      -> HTTP 401
+  [pass] 401 - the caller token is not a substitute for a user
+
+============================================================================================
+ 3. Register and sign in
+============================================================================================
+
+  The Identity module: a hashed password, a 2-hour access token, and a 7-day refresh token
+
+  that is hashed at rest, rotated on use, and revokes its whole family if one is replayed.
+
+      POST /api/v1/auth/register  -> HTTP 201
+  [pass] account created
+      POST /api/v1/auth/login     -> HTTP 200   access token: 257 chars
+  [pass] signed in
+
+============================================================================================
+ 4. Write a quote, and read it back out of Azure SQL
+============================================================================================
+
+  Through the broker, into the modular monolith, into a database the application reaches with
+
+  no password at all - Authentication=Active Directory Managed Identity, and nothing else.
+
+      POST /api/v1/quotes -> HTTP 201   id=6
+      {
+        "id": 6,
+        "text": "Ship it, then write down what it taught you.",
+        "author": "Day 32",
+        "createdAt": "2026-09-18T06:49:24.5295248+00:00",
+        "isDeleted": false,
+        "userId": 5
+      }
+  [pass] created
+      GET  /api/v1/quotes/6 -> HTTP 200
+  [pass] persisted - this survives a revision restart, which Day 17 SQLite-in-the-container did not
+
+============================================================================================
+ 5. The outbox - a write and its message commit together or not at all
+============================================================================================
+
+  Creating that quote wrote a row to Quotes AND a row to Outbox in ONE transaction. The relay
+
+  publishes afterwards and marks the row. A crash between write and publish cannot lose the
+
+  message, because there is no between.
+
+      GET /api/v1/outbox -> HTTP 200   rows: ?
+      {
+        "pending": 0,
+        "processed": 1,
+        "total": 1,
+        "recent": [
+          {
+            "id": "267591ad-452c-49f7-9c4a-5a7ddd34cba3",
+            "type": "quote.created",
+            "aggregateType": "Quote",
+            "aggregateId": "6",
+            "status": "Published",
+            "occurredAt": "2026-09-18T06:49:24.5295248",
+            "processedAt": "2026-09-18T06:49:25.6350705",
+            "attempts": 1,
+            "lastError": null,
+            "lockedBy": null,
+            "lockedUntil": null,
+            "nextAttemptAt": null
+  [pass] outbox readable - rows move Pending -> Published as the relay sweeps
+
+============================================================================================
+ 6. Messaging - competing consumers against a real broker
+============================================================================================
+
+  Not an emulator. The topic and both subscriptions live in the Standard Service Bus namespace
+
+  Day 26 already pays for, and the API reaches it with a managed-identity token, because that
+
+  namespace has SAS authentication disabled. Projections are what the consumers WRITE, so a
+
+  populated store is evidence a real message was received and handled.
+
+      GET /api/v1/messaging/projections -> HTTP 200
+      {
+        "enabled": true,
+        "topic": "quote-events",
+        "subscriptions": [
+          {
+            "name": "audit",
+            "processed": 1,
+            "duplicatesSuppressed": 0,
+            "auditLog": [
+              "2026-09-18T06:49:24.5295248+00:00 quote.created quote=6 author=Day 32"
+            ]
+          },
+          {
+            "name": "search-index",
+            "processed": 1,
+            "duplicatesSuppressed": 0,
+  [pass] projections readable - the consumers are live
+
+============================================================================================
+ 7. Background jobs
+============================================================================================
+
+  A bounded in-process queue with backpressure. Bounded on purpose: an unbounded queue turns a
+
+  request burst into unbounded memory and an OOM that names nothing.
+
+      GET /api/v1/jobs -> HTTP 200   jobs: ?
+      {
+        "queueDepth": 0,
+        "jobs": []
+      }
+  [pass] job host alive
+
+============================================================================================
+ 8. The debug levers are NOT here, and that is the point
+============================================================================================
+
+  Days 21 and 22 built endpoints that hold the circuit breaker open and switch the cache off.
+
+  They are instrumentation, and they are levers over the application's behaviour. Day 27 made
+
+  them Development-only rather than merely authenticated, because an endpoint that does not
+
+  exist cannot be misconfigured. So the resilience demo cannot be run against production -
+
+  a real cost of a decision that was still right.
+
+      POST /api/v1/cache/mode -> HTTP 404
+  [pass] 404 - not mapped in Production. The lever is absent, not guarded
+
+============================================================================================
+ 9. Dispatch — the money path, end to end, against a real clock
+============================================================================================
+
+  Raise, triage, schedule, start, log labour, complete, invoice. Three modules, one process,
+
+  no distributed transaction anywhere. The window is opened three seconds from now because
+
+  the rule that work cannot start early only means something against a real clock.
+
+      POST /api/work-orders -> HTTP 201   id=01a0b346-f97b-7940-9994-61feeb1b07d0
+  [pass] raised
+      POST .../start before triage -> HTTP 409  work_order.wrong_status.start
+  [pass] 409 Conflict, not 400 — the request was fine, the state was not
+      POST .../triage then .../schedule -> HTTP 204
+  [pass] scheduled — WorkManagement asked Scheduling to hold the slot
+
+  A second order, same technician, same window. WorkManagement commits Scheduled, Scheduling
+
+  refuses, WorkManagement walks itself back. A saga, inside one request.
+      second order status -> Triaged
+  [pass] compensated back to Triaged, not left half-scheduled
+    waiting 4s for the scheduled window to open
+      POST .../start then .../labour -> HTTP 204
+      POST .../complete -> HTTP 204
+  [pass] completed
+      GET  /api/invoices -> HTTP 200   invoices: 1
+      [
+        {
+          "id": "01a0b347-1eb0-7dad-b9ff-1cb51177fa20",
+          "workOrderId": "01a0b346-f97b-7940-9994-61feeb1b07d0",
+          "customerId": "11111111-1111-1111-1111-111111111111",
+          "total": 255,
+          "currency": "GBP",
+          "isIssued": false
+        }
+      ]
+  [pass] Billing heard the completion and raised an invoice — the money path closed
+
+============================================================================================
+ 10. The frontend
+============================================================================================
+
+  Angular, served by nginx, with a Content-Security-Policy whose connect-src names the broker
+
+  and nothing else. An injected script has nowhere to send anything.
+
+      GET https://ca-quotes-web.happydesert-51845d93.centralindia.azurecontainerapps.io/ -> HTTP 200
+      content-security-policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://ca-quotes-bff.ha
+  [pass] served
+  [pass] connect-src names the broker
+
+============================================================================================
+ Summary
+============================================================================================
+
+  22 passed, 0 failed
+
+  web       https://ca-quotes-web.happydesert-51845d93.centralindia.azurecontainerapps.io
+  broker    https://ca-quotes-bff.happydesert-51845d93.centralindia.azurecontainerapps.io
+  quotes    https://ca-quotes-api.happydesert-51845d93.centralindia.azurecontainerapps.io
+  dispatch  https://ca-dispatch-api.happydesert-51845d93.centralindia.azurecontainerapps.io
+

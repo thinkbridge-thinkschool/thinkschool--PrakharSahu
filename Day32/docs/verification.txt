@@ -1,0 +1,107 @@
+WARNING: The behavior of this command has been altered by the following extension: containerapp
+
+==========================================================================================
+ 1. The resource group exists and holds what it should
+==========================================================================================
+  [pass] userAssignedIdentities present
+  [pass] vaults present
+  [pass] servers present
+  [pass] 4 container apps
+
+  identity id-ship-egyg6zmpty3tm
+  clientId 26751e62-4f9f-4efe-b81a-9154f0e0ff6e
+  vault    kv-ship-egyg6zmpty3tm
+  sql      sql-ship-egyg6zmpty3tm.database.windows.net
+  [pass] clientId and principalId are different values (they are not interchangeable)
+
+==========================================================================================
+ 2. Permissions — the part that is invisible until something 403s
+==========================================================================================
+  [pass] identity holds AcrPull on quotesday17acr22887
+  [pass] identity holds Service Bus Data Sender
+  [pass] identity holds Service Bus Data Receiver
+  [pass] identity does NOT hold Data Owner (send+receive is enough)
+  [pass] identity holds Key Vault Secrets User
+  [pass] identity cannot WRITE secrets
+  [pass] operator holds Key Vault Secrets Officer (so a redeploy reuses the signing key)
+  [pass] identity is granted Api.Invoke on the Quotes API app
+
+==========================================================================================
+ 3. Secrets — there should be exactly one, and no password anywhere
+==========================================================================================
+  [pass] Key Vault holds exactly 1 secret
+  [pass] and it is only the JWT signing key
+  [pass] Jwt__Key is a secret REFERENCE, not a value
+  [pass] Jwt__Key has no inline value
+  [pass] ca-quotes-api carries no Password= 
+  [pass] ca-quotes-api carries no SharedAccessKey
+  [pass] ca-quotes-bff carries no Password= 
+  [pass] ca-quotes-bff carries no SharedAccessKey
+  [pass] ca-quotes-web carries no Password= 
+  [pass] ca-quotes-web carries no SharedAccessKey
+  [pass] ca-dispatch-api carries no Password= 
+  [pass] ca-dispatch-api carries no SharedAccessKey
+
+==========================================================================================
+ 4. SQL — Entra only, two databases, the identity has a user in both
+==========================================================================================
+  [pass] SQL authentication is disabled (Entra only)
+  [pass] databases are quotes and dispatch
+  [pass] [quotes] connection string uses managed identity
+  [pass] [quotes] connection string names the CLIENT id
+  [pass] [quotes] connection string has no password
+  [pass] [quotes] connection string points at this server
+  [pass] [dispatch] connection string uses managed identity
+  [pass] [dispatch] connection string names the CLIENT id
+  [pass] [dispatch] connection string has no password
+  [pass] [dispatch] connection string points at this server
+
+==========================================================================================
+ 5. Messaging — a namespace, not a credential
+==========================================================================================
+  [pass] Quotes API is pointed at Day 26's namespace
+  [pass] no ServiceBus__ConnectionString is set at all
+  [pass] AZURE_CLIENT_ID tells DefaultAzureCredential which identity to use
+  [pass] the namespace really does reject SAS (which is why the above matters)
+  [pass] quote-events has both subscriptions
+
+==========================================================================================
+ 6. The three tiers point at each other
+==========================================================================================
+  [pass] broker's upstream is the Quotes API
+  [pass] broker's allowed origin is the web app
+  [pass] broker's audience matches the API's
+  [pass] broker knows which identity to present
+  [pass] web app's CSP origin is the broker
+  [pass] the Angular bundle calls the broker at /api/v1
+  [pass] CSP connect-src names the broker
+
+==========================================================================================
+ 7. Images — all four pinned, none on :latest
+==========================================================================================
+  [pass] ca-quotes-api runs quotes-api-day32:day32
+  [pass] ca-quotes-api is not on :latest
+  [pass] ca-quotes-bff runs quotes-bff-day32:day32
+  [pass] ca-quotes-bff is not on :latest
+  [pass] ca-quotes-web runs quotes-web-day32:day32
+  [pass] ca-quotes-web is not on :latest
+  [pass] ca-dispatch-api runs dispatch-api:day32
+  [pass] ca-dispatch-api is not on :latest
+
+==========================================================================================
+ 8. Runtime — every tier answers, and the boundary holds
+==========================================================================================
+  [pass] quotes-api answers 200
+  [pass] broker answers 200
+  [pass] dispatch-api answers 200
+  [pass] web answers 200
+  [pass] the Quotes API refuses a direct call (401) while /health answers 200
+  [pass] Dispatch does not auto-migrate on startup
+  [pass] Quotes API reports telemetry to Day 26's component
+
+==========================================================================================
+ Summary
+==========================================================================================
+
+  62 passed, 0 failed
+

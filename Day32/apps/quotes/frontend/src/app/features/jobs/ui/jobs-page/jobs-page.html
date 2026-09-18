@@ -1,0 +1,239 @@
+<section aria-labelledby="jobs-heading" data-testid="jobs-page">
+  <div class="page-head">
+    <div>
+      <h2 id="jobs-heading">Background jobs</h2>
+      <p class="lede">
+        {{ store.jobs().length }} from <code>GET /api/jobs</code> ·
+        <span data-testid="queue-depth">queue depth {{ store.queueDepth() }}</span>
+        @if (store.activeCount() > 0) {
+          · <strong data-testid="active-count">{{ store.activeCount() }} active</strong>
+        }
+      </p>
+    </div>
+
+    <div class="page-actions">
+      <!-- Polling state, said out loud rather than left to be inferred from rows changing. -->
+      @if (store.isPolling()) {
+        <span class="poll-state polling" data-testid="poll-state">
+          <span class="poll-dot" aria-hidden="true"></span>
+          Polling every {{ formatSeconds(store.pollIntervalMs) }}
+        </span>
+      } @else if (store.isPaused()) {
+        <span class="poll-state" data-testid="poll-state">Paused — tab is in the background</span>
+      } @else {
+        <span class="poll-state" data-testid="poll-state">Idle — nothing left to watch</span>
+      }
+
+      <button type="button" (click)="store.load()" data-testid="refresh">Refresh</button>
+    </div>
+  </div>
+
+  <!-- Polite, and only the counts. Announcing a list that rewrites itself every couple of
+       seconds row by row would be unusable. -->
+  <p class="sr-only" role="status" data-testid="live-summary">{{ liveSummary() }}</p>
+
+  @if (store.hasGivenUp()) {
+    <div class="error" role="alert" data-testid="polling-stopped">
+      <p class="error-message">
+        Polling stopped after three failed attempts. {{ store.error()?.friendlyMessage }}
+      </p>
+      <p class="muted">
+        The jobs themselves are unaffected — this only stopped the page asking about them.
+      </p>
+      <button type="button" (click)="store.resume()" data-testid="resume">Resume polling</button>
+    </div>
+  } @else if (store.error() && store.jobs().length > 0) {
+    <!-- A poll failed but there are still rows worth showing. Say they are stale; do not
+         throw away information that was correct a moment ago. -->
+    <p class="notice" role="status" data-testid="stale">
+      The last refresh failed, so these rows may be out of date.
+      {{ store.error()?.friendlyMessage }}
+    </p>
+  }
+
+  @if (store.canManage()) {
+    <form class="create-form" (submit)="onSubmit($event)" data-testid="enqueue-form">
+      <div class="field">
+        <label for="job-type">Job type</label>
+        <select
+          id="job-type"
+          [value]="type()"
+          (change)="onTypeChange($event)"
+          data-testid="job-type"
+        >
+          @for (option of jobTypes; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        <p class="hint">{{ selectedHint() }}</p>
+      </div>
+
+      @if (isSimulate()) {
+        <div class="field">
+          <label [attr.for]="durationFieldId">Duration (ms)</label>
+          <input
+            [id]="durationFieldId"
+            type="number"
+            min="0"
+            max="120000"
+            step="500"
+            [value]="durationMs()"
+            (input)="onDurationChange($event)"
+            [attr.aria-describedby]="durationFieldId + '-hint'"
+            data-testid="duration"
+          />
+          <p class="hint" [id]="durationFieldId + '-hint'">
+            Clamped server-side to 0–120,000ms. Split into ten steps, so progress moves and
+            cancellation lands promptly.
+          </p>
+        </div>
+
+        <label class="checkbox">
+          <input
+            type="checkbox"
+            [checked]="shouldFail()"
+            (change)="onShouldFailChange($event)"
+            data-testid="should-fail"
+          />
+          Fail on purpose, to see a Failed job
+        </label>
+      }
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          [attr.aria-disabled]="store.isSubmitting() || null"
+          data-testid="enqueue"
+        >
+          {{ store.isSubmitting() ? 'Queueing…' : 'Queue the job' }}
+        </button>
+        <p class="hint">
+          <code>POST /api/jobs</code> answers <strong>202 Accepted</strong> straight away. The work
+          happens on the worker loop afterwards.
+        </p>
+      </div>
+    </form>
+  } @else {
+    <p class="muted" data-testid="sign-in-hint">
+      Sign in to queue or cancel jobs. <code>POST /api/jobs</code> needs a token — an anonymous
+      caller who can enqueue expensive work has a denial-of-service primitive. Reading the list is
+      anonymous, which is why this page is not behind the auth guard.
+    </p>
+  }
+
+  @if (accepted(); as job) {
+    <div class="notice accepted" role="status" data-testid="accepted">
+      <p>
+        Accepted as <code>{{ shortId(job.id) }}</code> — it is queued, not done. Watch it below.
+      </p>
+      <button type="button" class="link-button" (click)="store.dismissSubmitOutcome()">
+        Dismiss
+      </button>
+    </div>
+  }
+
+  @if (submitFailure(); as message) {
+    <div class="error" role="alert" data-testid="submit-failure">
+      <p class="error-message">{{ message }}</p>
+      <button type="button" class="link-button" (click)="store.dismissSubmitOutcome()">
+        Dismiss
+      </button>
+    </div>
+  }
+
+  <!-- One banner per refused cancellation: two failures must not overwrite each other. -->
+  @for (failure of store.removalFailures(); track failure.id) {
+    <div class="error" role="alert" [attr.data-testid]="'cancel-failure-' + failure.id">
+      <p class="error-message">{{ failure.message }}</p>
+      <button type="button" (click)="store.dismissFailure(failure.id)">Dismiss</button>
+    </div>
+  }
+
+  @switch (store.viewStatus()) {
+    @case ('loading') {
+      <ul class="jobs" aria-hidden="true" data-testid="loading">
+        @for (row of [1, 2, 3]; track row) {
+          <li class="job-card skeleton">
+            <span class="bar bar-wide"></span>
+            <span class="bar bar-narrow"></span>
+          </li>
+        }
+      </ul>
+      <p class="sr-only" role="status">Loading jobs…</p>
+    }
+
+    @case ('empty') {
+      <p class="notice" data-testid="empty">
+        No jobs yet. Queue one above, or <code>POST /api/jobs</code> directly. History is
+        in-process, so a restart of the API clears this list.
+      </p>
+    }
+
+    @case ('failed') {
+      <div class="error" role="alert" data-testid="error">
+        <p class="error-message">{{ store.error()?.friendlyMessage }}</p>
+        <button type="button" (click)="store.load()">Try again</button>
+      </div>
+    }
+
+    @default {
+      <ul class="jobs" data-testid="jobs">
+        @for (job of store.jobs(); track job.id) {
+          <li class="job-card" [attr.data-testid]="'job-' + job.id">
+            <div class="job-head">
+              <span
+                class="status-chip"
+                [class]="statusClass(job.status)"
+                [attr.data-testid]="'status-' + job.id"
+                >{{ job.status }}</span
+              >
+              <span class="job-type">{{ job.type }}</span>
+              <code class="job-id" [attr.title]="job.id">{{ shortId(job.id) }}</code>
+
+              @if (isActive(job) && store.canManage()) {
+                <button
+                  type="button"
+                  class="row-delete"
+                  [attr.data-testid]="'cancel-' + job.id"
+                  [attr.aria-label]="'Cancel job ' + job.id"
+                  [attr.aria-disabled]="store.isCancelling(job.id) || null"
+                  (click)="store.cancel(job.id)"
+                >
+                  {{ store.isCancelling(job.id) ? 'Cancelling…' : 'Cancel' }}
+                </button>
+              }
+            </div>
+
+            @if (job.status === 'Running' && job.progress) {
+              <p class="job-progress" [attr.data-testid]="'progress-' + job.id">
+                {{ job.progress }}
+              </p>
+            }
+
+            @if (job.result) {
+              <p class="job-result" [attr.data-testid]="'result-' + job.id">{{ job.result }}</p>
+            }
+
+            @if (job.error) {
+              <p class="job-error" [attr.data-testid]="'error-' + job.id">{{ job.error }}</p>
+            }
+
+            <span class="meta">
+              <time [attr.datetime]="job.createdAt">{{ job.createdAt | date: 'mediumTime' }}</time>
+              <!-- Queue latency, not just duration. A rising wait is what says the worker is
+                   falling behind; per-job durations stay flat while the backlog grows. -->
+              <span>waited {{ formatMs(job.queueLatencyMs) }}</span>
+              <span>ran {{ formatMs(job.durationMs) }}</span>
+            </span>
+          </li>
+        }
+      </ul>
+
+      @if (store.activeCount() === 0) {
+        <p class="muted" data-testid="idle-hint">
+          Nothing is running, so polling has stopped. Queue a job or hit Refresh to start it again.
+        </p>
+      }
+    }
+  }
+</section>

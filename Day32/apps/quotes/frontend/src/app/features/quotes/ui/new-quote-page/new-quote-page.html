@@ -1,0 +1,109 @@
+<section aria-labelledby="new-heading" data-testid="new-quote-page">
+  <p class="crumb"><a routerLink="/quotes">← All quotes</a></p>
+  <h2 id="new-heading">New quote</h2>
+  <p class="lede">
+    Sends <code>POST /api/quotes</code> with
+    <code>{{ '{' }} author, text {{ '}' }}</code> — the only two fields the endpoint takes.
+    An author cannot be credited with the same words twice; a different author can.
+  </p>
+
+  <form novalidate (submit)="onSubmit($event)" class="create-form">
+    @if (store.hasVisibleErrors()) {
+      <div class="error" role="alert" aria-labelledby="create-error-heading" data-testid="form-errors">
+        <h3 id="create-error-heading" class="error-message">
+          There {{ store.errorSummary().length === 1 ? 'is a problem' : 'are problems' }} with this
+          quote
+        </h3>
+        <ul class="error-list">
+          @for (item of store.errorSummary(); track item.fieldId + item.message) {
+            <li>
+              <button type="button" class="link-button" (click)="onSummaryItemClick(item.fieldId)">
+                {{ item.label }}: {{ item.message }}
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <div class="field">
+      <label [attr.for]="authorId">
+        Author <span class="req" aria-hidden="true">*</span><span class="sr-only">(required)</span>
+      </label>
+      <p [id]="authorId + '-hint'" class="hint">
+        Who said it. Up to {{ store.authorMaxLength }} characters. Letters, numbers, spaces and
+        {{ store.allowedPunctuation }} only — no symbols such as ! &#64; # $.
+      </p>
+      <input
+        [id]="authorId"
+        type="text"
+        autocomplete="off"
+        [formField]="store.form.author"
+        [attr.aria-invalid]="showAuthorErrors() ? 'true' : null"
+        [attr.aria-describedby]="authorDescribedBy()"
+      />
+      @if (showAuthorErrors()) {
+        <ul [id]="authorId + '-error'" class="field-errors">
+          @for (message of authorMessages(); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      }
+      <p [id]="authorId + '-count'" class="hint">
+        {{ store.authorRemaining() }} of {{ store.authorMaxLength }} characters remaining
+      </p>
+    </div>
+
+    <div class="field">
+      <label [attr.for]="textId">
+        Quote text <span class="req" aria-hidden="true">*</span
+        ><span class="sr-only">(required)</span>
+      </label>
+      <p [id]="textId + '-hint'" class="hint">
+        The quote itself. Up to {{ store.textMaxLength }} characters. Letters, numbers, spaces and
+        {{ store.allowedPunctuation }} only — no symbols such as ! &#64; # $.
+      </p>
+      <textarea
+        [id]="textId"
+        rows="4"
+        [formField]="store.form.text"
+        [attr.aria-invalid]="showTextErrors() ? 'true' : null"
+        [attr.aria-describedby]="textDescribedBy()"
+      ></textarea>
+      @if (showTextErrors()) {
+        <ul [id]="textId + '-error'" class="field-errors">
+          @for (message of textMessages(); track message) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      }
+      <p [id]="textId + '-count'" class="hint">
+        {{ store.textRemaining() }} of {{ store.textMaxLength }} characters remaining
+      </p>
+    </div>
+
+    <div class="form-actions">
+      <!-- aria-disabled, not disabled: a disabled button leaves the tab order mid-interaction. -->
+      <button
+        type="submit"
+        [attr.aria-disabled]="store.isSaving() ? 'true' : null"
+        data-testid="create-submit"
+      >
+        {{ store.isSaving() ? 'Saving…' : 'Add quote' }}
+      </button>
+      <a routerLink="/quotes">Cancel</a>
+    </div>
+
+    @if (failureMessage(); as message) {
+      <div
+        #outcomeAlert
+        tabindex="-1"
+        role="alert"
+        class="error"
+        data-testid="create-failed"
+      >
+        <p class="error-message">{{ message }}</p>
+      </div>
+    }
+  </form>
+</section>

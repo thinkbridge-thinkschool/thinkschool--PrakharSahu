@@ -1,0 +1,53 @@
+<section aria-labelledby="sign-in-heading" data-testid="sign-in-page">
+  <h2 id="sign-in-heading">Sign in</h2>
+  <p class="muted">
+    <code>POST /api/auth/login</code> — needed before <code>/quotes/new</code> will open.
+  </p>
+
+  @if (returnUrl() !== '/quotes') {
+    <p class="notice" data-testid="return-url-notice">
+      You will be sent back to <code data-testid="return-url">{{ returnUrl() }}</code> afterwards.
+    </p>
+  }
+
+  <form novalidate (submit)="onSubmit($event)" class="sign-in-form">
+    <div class="field">
+      <label for="sign-in-email">Email</label>
+      <input
+        id="sign-in-email"
+        type="email"
+        name="email"
+        autocomplete="username"
+        [value]="email()"
+        (input)="onEmail($event)"
+      />
+    </div>
+
+    <div class="field">
+      <label for="sign-in-password">Password</label>
+      <input
+        id="sign-in-password"
+        type="password"
+        name="password"
+        autocomplete="current-password"
+        [value]="password()"
+        (input)="onPassword($event)"
+      />
+    </div>
+
+    <button type="submit" [attr.aria-disabled]="busy() || null" data-testid="sign-in-submit">
+      {{ busy() ? 'Signing in…' : 'Sign in' }}
+    </button>
+  </form>
+
+  @if (failure(); as message) {
+    <p class="error-message" role="alert" data-testid="sign-in-error">{{ message }}</p>
+  }
+
+  <p class="muted">
+    No account yet?
+    <a routerLink="/register" [queryParams]="{ returnUrl: returnUrl() }" data-testid="to-register">
+      Create one
+    </a>
+  </p>
+</section>

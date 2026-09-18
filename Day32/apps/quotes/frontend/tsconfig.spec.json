@@ -1,0 +1,19 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec",
+    /* Same reason as the app project. Pinned to ./src rather than the inferred ./src/app so
+       it does not shift when files outside src/app (like src/testing) join the project. */
+    "rootDir": "./src",
+    "types": ["vitest/globals"]
+  },
+  "include": [
+    "src/**/*.d.ts",
+    "src/**/*.spec.ts",
+    /* Shared fixtures and builders that are not themselves specs. They belong to this
+       project so they get the vitest globals; the app project excludes them to match. */
+    "src/testing/**/*.ts"
+  ]
+}

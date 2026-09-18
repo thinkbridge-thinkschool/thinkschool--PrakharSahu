@@ -1,0 +1,176 @@
+/* Job-specific styling only. The page head, form, notice, error and skeleton classes all
+   come from the global stylesheet, so this file is the status chip and the row layout. */
+
+.jobs {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.job-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.job-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.job-type {
+  font-weight: 600;
+}
+
+.job-id {
+  font-size: 0.75rem;
+}
+
+/* Pushes Cancel to the right without needing a spacer element. */
+.job-head .row-delete {
+  margin-left: auto;
+}
+
+/* ---- status chip ------------------------------------------------------------------- */
+
+.status-chip {
+  padding: 0.1rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.status-queued {
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.status-running {
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
+  background: var(--accent-wash);
+  color: var(--accent-strong);
+}
+
+.status-succeeded {
+  border-color: color-mix(in oklab, #2f855a 40%, var(--border));
+  background: color-mix(in oklab, #2f855a 10%, var(--surface));
+  color: #2f855a;
+}
+
+.status-failed {
+  border-color: color-mix(in oklab, var(--danger) 40%, var(--border));
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+
+.status-cancelled {
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  /* Deliberately not styled as a failure. Cancelled is an outcome the caller asked for, or a
+     shutdown that landed mid-job — neither is a bug, and colouring it red reads as one. */
+}
+
+/* ---- body ------------------------------------------------------------------------- */
+
+.job-progress,
+.job-result,
+.job-error {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.job-progress {
+  color: var(--accent-strong);
+}
+
+.job-error {
+  color: var(--danger);
+}
+
+.job-card .meta {
+  padding-left: 0;
+  gap: 0.3rem 0.9rem;
+}
+
+/* ---- polling indicator -------------------------------------------------------------- */
+
+.poll-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.poll-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: poll-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes poll-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* A pulsing dot is decoration; for anyone who has asked for less motion it is a distraction
+   on a page that already updates itself. */
+@media (prefers-reduced-motion: reduce) {
+  .poll-dot {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ---- form extras -------------------------------------------------------------------- */
+
+.create-form select {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--page);
+  color: inherit;
+  font: inherit;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.accepted {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+}
+
+.accepted p {
+  margin: 0;
+}
+
+.accepted .link-button {
+  color: var(--accent-strong);
+}
